@@ -1,317 +1,337 @@
 // src/features/layouts/mockData.ts
-import { Layout, Field, LayoutFormValues } from './types';
+import { Layout, LayoutField, LayoutType } from './types';
 
+// Shared utilities
 const generateId = (): string => Math.random().toString(36).substr(2, 9);
 
-// Common fields that might be shared across different layouts
-const commonFields: Field[] = [
+// Define field categories per layout type
+export const FIELD_CATEGORIES = {
+  claims: [
+    'Member Information',
+    'Claim Information',
+    'Provider Information',
+    'Financial Information'
+  ],
+  eligibility: [
+    'Member Information',
+    'Coverage Information',
+    'Plan Information'
+  ],
+  wellness: [
+    'Member Information',
+    'Program Information',
+    'Activity Information'
+  ]
+} as const;
+
+// Standard field validations
+const standardValidations = {
+  memberId: {
+    pattern: '^[A-Z0-9]{10}$',
+    maxLength: 10
+  },
+  name: {
+    maxLength: 50
+  },
+  amount: {
+    min: 0,
+    precision: 2
+  }
+};
+
+// Claims Library Fields
+export const claimsLibraryFields = [
   {
-    id: generateId(),
-    name: 'createdAt',
-    type: 'date',
+    id: 'claim_id',
+    name: 'Claim ID',
+    type: 'string' as const,
+    description: 'Unique identifier for the claim',
     required: true,
-    description: 'Record creation timestamp'
+    category: 'Claim Information',
+    validation: {
+      pattern: '^CLM[0-9]{10}$'
+    }
   },
   {
-    id: generateId(),
-    name: 'lastModified',
-    type: 'date',
+    id: 'member_id',
+    name: 'Member ID',
+    type: 'string' as const,
+    description: 'Member identifier',
     required: true,
-    description: 'Last modification timestamp'
+    category: 'Member Information',
+    validation: standardValidations.memberId
+  },
+  {
+    id: 'claim_date',
+    name: 'Claim Date',
+    type: 'date' as const,
+    description: 'Date when claim was filed',
+    required: true,
+    category: 'Claim Information'
+  },
+  {
+    id: 'service_date',
+    name: 'Service Date',
+    type: 'date' as const,
+    description: 'Date of service',
+    required: true,
+    category: 'Claim Information'
+  },
+  {
+    id: 'provider_id',
+    name: 'Provider ID',
+    type: 'string' as const,
+    description: 'Provider identifier',
+    required: true,
+    category: 'Provider Information',
+    validation: {
+      pattern: '^PRV[0-9]{8}$'
+    }
+  },
+  {
+    id: 'provider_name',
+    name: 'Provider Name',
+    type: 'string' as const,
+    description: 'Name of the provider',
+    required: true,
+    category: 'Provider Information',
+    validation: standardValidations.name
+  },
+  {
+    id: 'amount_billed',
+    name: 'Amount Billed',
+    type: 'decimal' as const,
+    description: 'Total amount billed by provider',
+    required: true,
+    category: 'Financial Information',
+    validation: standardValidations.amount
+  },
+  {
+    id: 'amount_allowed',
+    name: 'Amount Allowed',
+    type: 'decimal' as const,
+    description: 'Allowed amount for the service',
+    required: true,
+    category: 'Financial Information',
+    validation: standardValidations.amount
   }
 ];
 
-// Claims-specific fields
-const claimsFields: Field[] = [
+// Eligibility Library Fields
+export const eligibilityLibraryFields = [
   {
-    id: generateId(),
-    name: 'claimId',
-    type: 'string',
+    id: 'member_id',
+    name: 'Member ID',
+    type: 'string' as const,
+    description: 'Unique identifier for the member',
     required: true,
-    description: 'Unique identifier for the claim'
+    category: 'Member Information',
+    validation: standardValidations.memberId
   },
   {
-    id: generateId(),
-    name: 'memberId',
-    type: 'string',
+    id: 'first_name',
+    name: 'First Name',
+    type: 'string' as const,
+    description: 'Member\'s first name',
     required: true,
-    description: 'Member identifier'
+    category: 'Member Information',
+    validation: standardValidations.name
   },
   {
-    id: generateId(),
-    name: 'providerId',
-    type: 'string',
+    id: 'last_name',
+    name: 'Last Name',
+    type: 'string' as const,
+    description: 'Member\'s last name',
     required: true,
-    description: 'Provider identifier'
+    category: 'Member Information',
+    validation: standardValidations.name
   },
   {
-    id: generateId(),
-    name: 'serviceDate',
-    type: 'date',
+    id: 'effective_date',
+    name: 'Effective Date',
+    type: 'date' as const,
+    description: 'Coverage effective date',
     required: true,
-    description: 'Date of service'
+    category: 'Coverage Information'
   },
   {
-    id: generateId(),
-    name: 'procedureCode',
-    type: 'string',
-    required: true,
-    description: 'Procedure code (CDT/CPT)'
-  },
-  {
-    id: generateId(),
-    name: 'billedAmount',
-    type: 'decimal',
-    required: true,
-    description: 'Amount billed by provider'
-  },
-  {
-    id: generateId(),
-    name: 'allowedAmount',
-    type: 'decimal',
-    required: true,
-    description: 'Allowed amount for the service'
-  },
-  {
-    id: generateId(),
-    name: 'paidAmount',
-    type: 'decimal',
-    required: true,
-    description: 'Amount paid for the service'
-  },
-  {
-    id: generateId(),
-    name: 'isAdjustment',
-    type: 'boolean',
+    id: 'termination_date',
+    name: 'Termination Date',
+    type: 'date' as const,
+    description: 'Coverage termination date',
     required: false,
-    description: 'Indicates if this is a claim adjustment'
+    category: 'Coverage Information'
+  },
+  {
+    id: 'plan_type',
+    name: 'Plan Type',
+    type: 'string' as const,
+    description: 'Type of insurance plan',
+    required: true,
+    category: 'Plan Information',
+    validation: {
+      enum: ['HMO', 'PPO', 'EPO']
+    }
+  },
+  {
+    id: 'coverage_level',
+    name: 'Coverage Level',
+    type: 'string' as const,
+    description: 'Level of coverage',
+    required: true,
+    category: 'Plan Information',
+    validation: {
+      enum: ['Individual', 'Family']
+    }
   }
 ];
 
-// Eligibility-specific fields
-const eligibilityFields: Field[] = [
+// Wellness Library Fields
+export const wellnessLibraryFields = [
   {
-    id: generateId(),
-    name: 'subscriberId',
-    type: 'string',
+    id: 'member_id',
+    name: 'Member ID',
+    type: 'string' as const,
+    description: 'Unique identifier for the member',
     required: true,
-    description: 'Subscriber identifier'
+    category: 'Member Information',
+    validation: standardValidations.memberId
   },
   {
-    id: generateId(),
-    name: 'firstName',
-    type: 'string',
+    id: 'program_id',
+    name: 'Program ID',
+    type: 'string' as const,
+    description: 'Identifier for wellness program',
     required: true,
-    description: 'Member first name'
+    category: 'Program Information',
+    validation: {
+      pattern: '^WP[0-9]{6}$'
+    }
   },
   {
-    id: generateId(),
-    name: 'lastName',
-    type: 'string',
+    id: 'enrollment_date',
+    name: 'Enrollment Date',
+    type: 'date' as const,
+    description: 'Date of program enrollment',
     required: true,
-    description: 'Member last name'
+    category: 'Program Information'
   },
   {
-    id: generateId(),
-    name: 'dateOfBirth',
-    type: 'date',
+    id: 'activity_type',
+    name: 'Activity Type',
+    type: 'string' as const,
+    description: 'Type of wellness activity',
     required: true,
-    description: 'Member date of birth'
+    category: 'Activity Information',
+    validation: {
+      enum: ['Exercise', 'Nutrition', 'Mental Health', 'Preventive Care']
+    }
   },
   {
-    id: generateId(),
-    name: 'effectiveDate',
-    type: 'date',
+    id: 'completion_status',
+    name: 'Completion Status',
+    type: 'string' as const,
+    description: 'Status of activity completion',
     required: true,
-    description: 'Coverage effective date'
-  },
-  {
-    id: generateId(),
-    name: 'terminationDate',
-    type: 'date',
-    required: false,
-    description: 'Coverage termination date'
-  },
-  {
-    id: generateId(),
-    name: 'planCode',
-    type: 'string',
-    required: true,
-    description: 'Dental plan code'
-  },
-  {
-    id: generateId(),
-    name: 'groupNumber',
-    type: 'string',
-    required: true,
-    description: 'Group/employer number'
+    category: 'Activity Information',
+    validation: {
+      enum: ['Not Started', 'In Progress', 'Completed']
+    }
   }
 ];
 
-// Provider-specific fields
-const providerFields: Field[] = [
-  {
-    id: generateId(),
-    name: 'npi',
-    type: 'string',
-    required: true,
-    description: 'National Provider Identifier'
-  },
-  {
-    id: generateId(),
-    name: 'taxId',
-    type: 'string',
-    required: true,
-    description: 'Tax identification number'
-  },
-  {
-    id: generateId(),
-    name: 'providerName',
-    type: 'string',
-    required: true,
-    description: 'Provider name'
-  },
-  {
-    id: generateId(),
-    name: 'specialty',
-    type: 'string',
-    required: true,
-    description: 'Provider specialty'
-  },
-  {
-    id: generateId(),
-    name: 'addressLine1',
-    type: 'string',
-    required: true,
-    description: 'Practice address line 1'
-  },
-  {
-    id: generateId(),
-    name: 'city',
-    type: 'string',
-    required: true,
-    description: 'Practice city'
-  },
-  {
-    id: generateId(),
-    name: 'state',
-    type: 'string',
-    required: true,
-    description: 'Practice state'
-  },
-  {
-    id: generateId(),
-    name: 'zipCode',
-    type: 'string',
-    required: true,
-    description: 'Practice ZIP code'
+// Helper function to get library fields by type
+export const getLibraryFieldsByType = (type: LayoutType) => {
+  switch (type) {
+    case 'claims':
+      return claimsLibraryFields;
+    case 'eligibility':
+      return eligibilityLibraryFields;
+    case 'wellness':
+      return wellnessLibraryFields;
+    default:
+      return [];
   }
-];
+};
 
+// Mock Layouts
 export const mockLayouts: Layout[] = [
   {
     id: generateId(),
-    name: 'Claims Extract v1.0',
+    name: 'Standard Claims Extract',
     description: 'Standard claims extract including payment and procedure information',
+    type: 'claims',
     status: 'active',
     version: 1,
     lastModified: '2024-01-15T08:00:00Z',
-    fields: [...claimsFields, ...commonFields]
+    fields: claimsLibraryFields.map((field, index) => ({
+      ...field,
+      id: generateId(),
+      order: index, // Add order property
+      customProperties: {} // Add customProperties if required by LayoutField type
+    })) as LayoutField[]
   },
   {
     id: generateId(),
-    name: 'Claims Extract v2.0',
-    description: 'Enhanced claims extract with additional payment details',
-    status: 'draft',
-    version: 2,
-    lastModified: '2024-02-20T10:30:00Z',
-    fields: [
-      ...claimsFields,
-      {
-        id: generateId(),
-        name: 'networkStatus',
-        type: 'string',
-        required: true,
-        description: 'Provider network status'
-      },
-      ...commonFields
-    ]
-  },
-  {
-    id: generateId(),
-    name: 'Eligibility Basic',
-    description: 'Basic member eligibility information',
+    name: 'Basic Eligibility Extract',
+    description: 'Basic member eligibility information extract',
+    type: 'eligibility',
     status: 'active',
     version: 1,
     lastModified: '2024-01-10T14:15:00Z',
-    fields: [...eligibilityFields, ...commonFields]
+    fields: eligibilityLibraryFields.map((field, index) => ({
+      ...field,
+      id: generateId(),
+      order: index,
+      customProperties: {}
+    })) as LayoutField[]
   },
   {
     id: generateId(),
-    name: 'Provider Directory',
-    description: 'Complete provider information for directory purposes',
-    status: 'active',
+    name: 'Wellness Program Extract',
+    description: 'Wellness program participation and activity tracking',
+    type: 'wellness',
+    status: 'draft',
     version: 1,
-    lastModified: '2024-01-05T11:20:00Z',
-    fields: [...providerFields, ...commonFields]
-  },
-  {
-    id: generateId(),
-    name: 'Provider Network',
-    description: 'Provider network and contracting information',
-    status: 'pending',
-    version: 1,
-    lastModified: '2024-02-28T09:45:00Z',
-    fields: [
-      ...providerFields,
-      {
-        id: generateId(),
-        name: 'contractEffectiveDate',
-        type: 'date',
-        required: true,
-        description: 'Contract effective date'
-      },
-      {
-        id: generateId(),
-        name: 'contractTerminationDate',
-        type: 'date',
-        required: false,
-        description: 'Contract termination date'
-      },
-      {
-        id: generateId(),
-        name: 'networkTier',
-        type: 'string',
-        required: true,
-        description: 'Provider network tier'
-      },
-      ...commonFields
-    ]
+    lastModified: '2024-02-20T10:30:00Z',
+    fields: wellnessLibraryFields.map((field, index) => ({
+      ...field,
+      id: generateId(),
+      order: index,
+      customProperties: {}
+    })) as LayoutField[]
   }
 ];
 
-// Sample new layout form values
-export const sampleLayoutFormValues: LayoutFormValues = {
-  name: 'New Claims Extract',
-  description: 'Standard claims extract for payment processing',
-  fields: [
-    {
-      name: 'claimId',
-      type: 'string',
-      required: true,
-      description: 'Unique claim identifier'
-    },
-    {
-      name: 'serviceDate',
-      type: 'date',
-      required: true,
-      description: 'Date of service'
-    },
-    {
-      name: 'amount',
-      type: 'decimal',
-      required: true,
-      description: 'Claim amount'
-    }
-  ]
+// Sample data generator
+export const generateSampleDataForField = (field: LayoutField) => {
+  switch (field.type) {
+    case 'string':
+      if (field.name.toLowerCase().includes('id')) {
+        return field.validation?.pattern 
+          ? field.validation.pattern.replace(/[\^\$]/g, '').replace(/[0-9]{6}/, '123456')
+          : 'ABC123';
+      }
+      if (field.validation?.enum) {
+        return field.validation.enum[0];
+      }
+      return `Sample ${field.name}`;
+    case 'decimal':
+      return field.name.toLowerCase().includes('amount') ? 1234.56 : 100.00;
+    case 'number':
+      return 12345;
+    case 'date':
+      return '2024-01-01';
+    case 'boolean':
+      return true;
+    default:
+      return null;
+  }
 };
+
+export const convertToLayoutField = (field: typeof claimsLibraryFields[0], order: number): LayoutField => ({
+  ...field,
+  id: generateId(),
+  order,
+  customProperties: {}
+});

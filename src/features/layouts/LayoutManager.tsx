@@ -2,7 +2,7 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Layout, LayoutFormValues, LayoutType, LayoutField } from './types';
+import { Layout, LayoutFormValues, LayoutField } from './types';
 import { mockLayouts } from './mockData';
 import { useToast } from "@/hooks/use-toast";
 import LayoutStats from './components/LayoutStats';

@@ -1,9 +1,7 @@
-// src/features/layoutManager/components/FieldSelector.tsx
 import { useState } from 'react';
 import { DragHandleDots2Icon } from '@radix-ui/react-icons';
 import { useDraggable } from '@dnd-kit/core';
 import { StandardField, LayoutType } from '@/features/layouts/types';
-import { getFieldsByLayoutType, groupFieldsByCategory } from '../fieldConfigurations';
 import {
   Accordion,
   AccordionContent,
@@ -16,13 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface DraggableFieldItemProps {
   field: StandardField;
@@ -54,16 +45,31 @@ const DraggableFieldItem = ({ field }: DraggableFieldItemProps) => {
   );
 };
 
-interface FieldSelectorProps {
+export interface FieldSelectorProps {
   selectedType: LayoutType;
-  onTypeChange: (type: LayoutType) => void;
+  categories: string[];
+  availableFields: StandardField[];
+  // Remove onTypeChange as it's no longer needed
 }
 
-export default function FieldSelector({ selectedType, onTypeChange }: FieldSelectorProps) {
+export default function FieldSelector({ 
+  selectedType, 
+  categories,
+  availableFields
+}: FieldSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const availableFields = getFieldsByLayoutType(selectedType);
-  const groupedFields = groupFieldsByCategory(availableFields);
 
+  // Group fields by category
+  const groupedFields = availableFields.reduce((acc, field) => {
+    const category = field.category || 'Other';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(field);
+    return acc;
+  }, {} as Record<string, StandardField[]>);
+
+  // Filter fields based on search query
   const filteredGroups = Object.entries(groupedFields).reduce((acc, [category, fields]) => {
     const filteredFields = fields.filter(field =>
       field.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -75,32 +81,32 @@ export default function FieldSelector({ selectedType, onTypeChange }: FieldSelec
     return acc;
   }, {} as Record<string, StandardField[]>);
 
+  // Convert readonly array to mutable array for Accordion defaultValue
+  const defaultExpandedCategories = [...categories];
+
   return (
     <Card className="w-full h-full border-0 rounded-none">
       <CardHeader className="px-4 py-2">
-        <CardTitle className="text-lg">Field Library</CardTitle>
-        <div className="space-y-2">
-          <Select value={selectedType} onValueChange={(value) => onTypeChange(value as LayoutType)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select layout type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="claims">Claims Layout</SelectItem>
-              <SelectItem value="wellness">Wellness Layout</SelectItem>
-              <SelectItem value="eligibility">Eligibility Layout</SelectItem>
-            </SelectContent>
-          </Select>
-          <input
-            type="search"
-            placeholder="Search fields..."
-            className="w-full px-3 py-2 text-sm border rounded-md"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+        <CardTitle className="text-lg flex items-center justify-between">
+          <span>Field Library</span>
+          <span className="text-sm font-normal capitalize text-muted-foreground">
+            {selectedType} Layout
+          </span>
+        </CardTitle>
+        <input
+          type="search"
+          placeholder="Search fields..."
+          className="w-full px-3 py-2 text-sm border rounded-md"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </CardHeader>
       <CardContent className="px-2">
-        <Accordion type="multiple" defaultValue={Object.keys(groupedFields)} className="space-y-2">
+        <Accordion 
+          type="multiple" 
+          defaultValue={defaultExpandedCategories}
+          className="space-y-2"
+        >
           {Object.entries(filteredGroups).map(([category, fields]) => (
             <AccordionItem key={category} value={category}>
               <AccordionTrigger className="text-sm font-medium py-2 px-2">
