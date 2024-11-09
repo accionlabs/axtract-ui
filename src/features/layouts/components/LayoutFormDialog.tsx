@@ -136,7 +136,7 @@ export default function LayoutFormDialog({
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: React.useMemo(() => ({
       name: initialData?.name || '',
       description: initialData?.description || '',
       type: (initialData?.type as LayoutType) || 'claims',
@@ -146,12 +146,56 @@ export default function LayoutFormDialog({
         type: field.type,
         description: field.description,
         required: field.required,
-        category: field.category,
-        validation: field.validation,
-        customProperties: field.customProperties
+        category: field.category || 'General',
+        validation: field.validation || {},
+        customProperties: field.customProperties || {}
       })) || []
-    }
+    }), [initialData]) // Memoize defaultValues based on initialData
   });
+
+  // Reset form when initialData or open state changes
+  React.useEffect(() => {
+    if (open) {
+      // Reset to initial data if provided, otherwise reset to empty form
+      if (initialData) {
+        form.reset({
+          name: initialData.name,
+          description: initialData.description,
+          type: initialData.type as LayoutType,
+          fields: initialData.fields.map(field => ({
+            id: field.id,
+            name: field.name,
+            type: field.type,
+            description: field.description,
+            required: field.required,
+            category: field.category || 'General',
+            validation: field.validation || {},
+            customProperties: field.customProperties || {}
+          }))
+        });
+        setHasSelectedType(true);
+      } else {
+        form.reset({
+          name: '',
+          description: '',
+          type: 'claims',
+          fields: []
+        });
+        setHasSelectedType(false);
+      }
+      setActiveTab('general');
+    }
+  }, [open, initialData, form.reset]);
+
+  // Clear form and reset states when dialog closes
+  const handleDialogClose = () => {
+    form.reset();
+    setActiveId(null);
+    setActiveDragItem(null);
+    setActiveTab('general');
+    setHasSelectedType(false);
+    onOpenChange(false);
+  };
 
   // Get available fields based on layout type
   const availableFields = React.useMemo(() => {
@@ -230,13 +274,24 @@ export default function LayoutFormDialog({
     setActiveDragItem(null);
   };
 
+  // Add validation before submission
   const handleFormSubmit = (data: FormSchema) => {
-    onSubmit({
-      name: data.name,
-      description: data.description,
-      type: data.type,
-      fields: data.fields
-    });
+    // Ensure all fields have required properties
+    const sanitizedFields = data.fields.map((field, index) => ({
+      ...field,
+      id: field.id || `field-${Date.now()}-${index}`,
+      category: field.category || 'General',
+      validation: field.validation || {},
+      customProperties: field.customProperties || {}
+    }));
+
+    const formData: LayoutFormValues = {
+      ...data,
+      fields: sanitizedFields
+    };
+
+    onSubmit(formData);
+    handleDialogClose();
   };
 
   // Layout type selection component
