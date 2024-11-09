@@ -1,10 +1,20 @@
 // src/features/layoutManager/components/LayoutFormDialog.tsx
 import React from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Plus, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { z } from 'zod';
+import {
+  DndContext,
+  DragEndEvent,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  DragOverlay,
+  DragStartEvent
+} from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
+
+// UI Components
 import {
   Dialog,
   DialogContent,
@@ -22,6 +32,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -30,27 +41,66 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Layout, LayoutFormValues, FieldType } from '../types';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-const fieldTypes = [
-  { value: 'string', label: 'String' },
-  { value: 'number', label: 'Number' },
-  { value: 'date', label: 'Date' },
-  { value: 'boolean', label: 'Boolean' },
-  { value: 'decimal', label: 'Decimal' },
+// Types and Components
+import { 
+  Layout, 
+  LayoutField, 
+  LayoutType, 
+  StandardField, 
+  LayoutFormValues,
+  LayoutFormField,
+  FieldType 
+} from '@/features/layouts/types';
+import FieldSelector from './FieldSelector';
+import DroppableFieldList from './DroppableFieldList';
+
+// Constants
+const LAYOUT_TYPES = [
+  { value: 'claims', label: 'Claims Layout' },
+  { value: 'wellness', label: 'Wellness Layout' },
+  { value: 'eligibility', label: 'Eligibility Layout' }
 ] as const;
 
+// Define the field types literal for Zod
+const fieldTypes = ['string', 'number', 'date', 'boolean', 'decimal'] as const;
+
+// Create form schema matching LayoutFormValues type
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
+  type: z.enum(['claims', 'wellness', 'eligibility'] as const),
   fields: z.array(z.object({
+    id: z.string(),
     name: z.string().min(1, 'Field name is required'),
-    type: z.enum(['string', 'number', 'date', 'boolean', 'decimal'] as const),
+    type: z.enum(fieldTypes),
+    description: z.string(),
     required: z.boolean(),
-    description: z.string().min(1, 'Description is required'),
-  })).min(1, 'At least one field is required'),
+    category: z.string(),
+    order: z.number(),
+    validation: z.object({
+      required: z.boolean().optional(),
+      pattern: z.string().optional(),
+      minLength: z.number().optional(),
+      maxLength: z.number().optional(),
+      min: z.number().optional(),
+      max: z.number().optional(),
+      precision: z.number().optional(),
+      enum: z.array(z.string()).optional(),
+    }).optional(),
+    customProperties: z.record(z.any()).optional()
+  }))
 });
+
+type FormSchema = z.infer<typeof formSchema>;
 
 interface LayoutFormDialogProps {
   open: boolean;
@@ -59,229 +109,322 @@ interface LayoutFormDialogProps {
   initialData?: Layout;
 }
 
-export default function LayoutFormDialog({ 
-  open, 
-  onOpenChange, 
-  onSubmit, 
-  initialData 
+export default function LayoutFormDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  initialData
 }: LayoutFormDialogProps) {
-  // Debug log to verify initialData
-  React.useEffect(() => {
-    console.log('Initial Data in Form:', initialData);
-  }, [initialData]);
+  const [activeId, setActiveId] = React.useState<string | null>(null);
+  const [activeDragItem, setActiveDragItem] = React.useState<any>(null);
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  // Initialize form with proper types
+  const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData?.name || '',
       description: initialData?.description || '',
-      fields: initialData?.fields?.map(field => ({
+      type: initialData?.type || 'claims',
+      fields: initialData?.fields.map(field => ({
+        id: field.id,
         name: field.name,
         type: field.type,
+        description: field.description,
         required: field.required,
-        description: field.description
-      })) || [{
-        name: '',
-        type: 'string' as FieldType,
-        required: false,
-        description: ''
-      }]
-    },
+        category: field.category,
+        order: field.order,
+        validation: field.validation,
+        customProperties: field.customProperties || {}
+      })) || []
+    }
   });
 
-  // Reset form when initialData changes
-  React.useEffect(() => {
-    if (initialData) {
-      form.reset({
-        name: initialData.name,
-        description: initialData.description,
-        fields: initialData.fields.map(field => ({
-          name: field.name,
-          type: field.type,
-          required: field.required,
-          description: field.description
-        }))
+  // Configure DND sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    setActiveId(active.id as string);
+    setActiveDragItem(active.data?.current?.field);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over) return;
+
+    // Handle dropping a new field from the library
+    if (active.data?.current?.type === 'FIELD' && over.id === 'droppable-field-list') {
+      const newField = active.data.current.field as StandardField;
+      const currentFields = form.getValues('fields');
+      
+      // Create new layout field
+      const layoutField: LayoutFormField = {
+        id: `field-${Date.now()}-${currentFields.length}`,
+        name: newField.name,
+        type: newField.type,
+        description: newField.description,
+        required: newField.required,
+        category: newField.category,
+        order: currentFields.length,
+        validation: newField.validation,
+        customProperties: {}
+      };
+
+      // Update the form fields
+      const updatedFields = [...currentFields, layoutField];
+      form.setValue('fields', updatedFields, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true
       });
     }
-  }, [initialData, form.reset]);
 
-  const { fields, append, remove } = useFieldArray({
-    name: 'fields',
-    control: form.control
-  });
+    // Handle reordering existing fields
+    if (active.data?.current?.type === 'LAYOUT_FIELD' && over.id !== active.id) {
+      const oldIndex = form.getValues('fields')
+        .findIndex(field => field.id === active.id);
+      const newIndex = form.getValues('fields')
+        .findIndex(field => field.id === over.id);
 
-  const handleSubmit = (data: z.infer<typeof formSchema>) => {
-    onSubmit(data);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newFields = arrayMove(form.getValues('fields'), oldIndex, newIndex)
+          .map((field, index) => ({
+            ...field,
+            order: index
+          }));
+        form.setValue('fields', newFields);
+      }
+    }
+
+    setActiveId(null);
+    setActiveDragItem(null);
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+    setActiveDragItem(null);
+  };
+
+  // Handle field removal
+  const handleFieldRemove = (fieldId: string) => {
+    const currentFields = form.getValues('fields').filter(field => field.id !== fieldId);
+    form.setValue('fields', currentFields.map((field, index) => ({ ...field, order: index })));
+  };
+
+  // Handle field updates
+  const handleFieldUpdate = (fieldId: string, updates: Partial<LayoutField>) => {
+    const currentFields = form.getValues('fields');
+    const fieldIndex = currentFields.findIndex(field => field.id === fieldId);
+
+    if (fieldIndex > -1) {
+      const updatedFields = [...currentFields];
+      updatedFields[fieldIndex] = { ...updatedFields[fieldIndex], ...updates };
+      form.setValue('fields', updatedFields);
+    }
+  };
+
+  const handleSubmit = (data: FormSchema) => {
+    const formValues: LayoutFormValues = {
+      name: data.name,
+      description: data.description,
+      type: data.type,
+      fields: data.fields
+    };
+    onSubmit(formValues);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl h-[calc(100vh-40px)] flex flex-col gap-0 p-0">
-        <div className="px-6 py-4 border-b">
-          <DialogHeader>
-            <DialogTitle>{initialData ? 'Edit Layout' : 'Create New Layout'}</DialogTitle>
-            <DialogDescription>
-              {initialData 
-                ? 'Modify the structure and fields for your data extract layout.'
-                : 'Define the structure and fields for your data extract layout.'}
-            </DialogDescription>
-          </DialogHeader>
-        </div>
+      <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 py-4 border-b">
+          <DialogTitle>{initialData ? 'Edit Layout' : 'Create New Layout'}</DialogTitle>
+          <DialogDescription>
+            Configure your layout structure and fields. Drag fields from the library on the left to add them to your layout.
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 p-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Layout Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
+          <div className="flex-1 flex overflow-hidden">
+            {/* Field Library Sidebar */}
+            <ScrollArea className="w-80 border-r">
+              <FieldSelector
+                selectedType={form.watch('type')}
+                onTypeChange={(type) => form.setValue('type', type)}
               />
+            </ScrollArea>
 
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <FormLabel>Fields</FormLabel>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => append({
-                      name: '',
-                      type: 'string',
-                      required: false,
-                      description: ''
-                    })}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Field
-                  </Button>
+            {/* Main Form Area */}
+            <div className="flex-1 overflow-y-auto">
+              <Tabs defaultValue="general" className="w-full">
+                <div className="px-6 pt-4 border-b">
+                  <TabsList>
+                    <TabsTrigger value="general">General</TabsTrigger>
+                    <TabsTrigger value="fields">Fields</TabsTrigger>
+                    <TabsTrigger value="preview">Preview</TabsTrigger>
+                  </TabsList>
                 </div>
 
-                {fields.map((field, index) => (
-                  <div key={field.id} className="flex gap-4 items-start p-4 border rounded-lg">
-                    <div className="flex-1 space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name={`fields.${index}.name`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Field Name</FormLabel>
-                              <FormControl>
-                                <Input {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name={`fields.${index}.type`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Type</FormLabel>
-                              <Select
-                                value={field.value}
-                                onValueChange={field.onChange}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {fieldTypes.map((type) => (
-                                    <SelectItem key={type.value} value={type.value}>
-                                      {type.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <FormField
-                        control={form.control}
-                        name={`fields.${index}.required`}
-                        render={({ field }) => (
-                          <FormItem className="flex items-center gap-2">
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
+                <ScrollArea className="h-[calc(100vh-15rem)]">
+                  <div className="p-6">
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                        <TabsContent value="general" className="space-y-6 mt-0">
+                          <Card className="p-6">
+                            <div className="grid grid-cols-2 gap-6">
+                              <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Layout Name</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Enter layout name" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
                               />
-                            </FormControl>
-                            <FormLabel>Required Field</FormLabel>
-                          </FormItem>
-                        )}
-                      />
 
-                      <FormField
-                        control={form.control}
-                        name={`fields.${index}.description`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Description</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                              <FormField
+                                control={form.control}
+                                name="type"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Layout Type</FormLabel>
+                                    <Select
+                                      value={field.value}
+                                      onValueChange={field.onChange}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select layout type" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        <SelectItem value="claims">Claims Layout</SelectItem>
+                                        <SelectItem value="wellness">Wellness Layout</SelectItem>
+                                        <SelectItem value="eligibility">Eligibility Layout</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
 
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => remove(index)}
-                      disabled={fields.length === 1}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                            <FormField
+                              control={form.control}
+                              name="description"
+                              render={({ field }) => (
+                                <FormItem className="mt-6">
+                                  <FormLabel>Description</FormLabel>
+                                  <FormControl>
+                                    <Textarea
+                                      placeholder="Enter layout description"
+                                      className="min-h-[100px]"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </Card>
+                        </TabsContent>
+
+                        <TabsContent value="fields" className="mt-0">
+                          <Card className="p-6">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <FormLabel className="text-base">Layout Fields</FormLabel>
+                                <div className="text-sm text-muted-foreground">
+                                  {form.watch('fields').length} fields configured
+                                </div>
+                              </div>
+
+                              <DroppableFieldList
+                                id="droppable-layout-fields"
+                                fields={form.watch('fields')}
+                                onFieldRemove={handleFieldRemove}
+                                onFieldUpdate={handleFieldUpdate}
+                              />
+                            </div>
+                          </Card>
+                        </TabsContent>
+
+                        <TabsContent value="preview" className="mt-0">
+                          <Card className="p-6">
+                            <div className="space-y-4">
+                              <h3 className="text-lg font-medium">Layout Preview</h3>
+                              <div className="border rounded-lg p-4">
+                                <table className="w-full border-collapse">
+                                  <thead>
+                                    <tr className="border-b">
+                                      <th className="text-left p-2">Field Name</th>
+                                      <th className="text-left p-2">Type</th>
+                                      <th className="text-left p-2">Required</th>
+                                      <th className="text-left p-2">Description</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {form.watch('fields').map((field, index) => (
+                                      <tr key={field.id} className="border-b">
+                                        <td className="p-2">{field.name}</td>
+                                        <td className="p-2">{field.type}</td>
+                                        <td className="p-2">{field.required ? 'Yes' : 'No'}</td>
+                                        <td className="p-2">{field.description}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </Card>
+                        </TabsContent>
+                      </form>
+                    </Form>
                   </div>
-                ))}
-              </div>
-            </form>
-          </Form>
-        </div>
+                </ScrollArea>
+              </Tabs>
+            </div>
+          </div>
 
-        <div className="border-t p-4">
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={form.handleSubmit(handleSubmit)}>
-              {initialData ? 'Update Layout' : 'Create Layout'}
-            </Button>
-          </DialogFooter>
-        </div>
+          {/* Drag Overlay */}
+          <DragOverlay>
+            {activeId && activeDragItem && (
+              <div className="flex items-center gap-2 p-2 rounded-md border bg-white shadow-lg">
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{activeDragItem.name}</p>
+                  <p className="text-xs text-muted-foreground">{activeDragItem.type}</p>
+                </div>
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+
+        <DialogFooter className="px-6 py-4 border-t">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={form.handleSubmit(handleSubmit)}
+            disabled={!form.formState.isValid}
+          >
+            {initialData ? 'Update Layout' : 'Create Layout'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

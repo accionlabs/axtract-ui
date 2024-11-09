@@ -1,12 +1,10 @@
-// src/features/layoutManager/LayoutManager.tsx
+// src/features/layouts/LayoutManager.tsx
 import React from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Layout, LayoutFormValues } from './types';
+import { Layout, LayoutFormValues, LayoutType, LayoutField } from './types';
 import { mockLayouts } from './mockData';
 import { useToast } from "@/hooks/use-toast";
-
-// Correctly import components from the components folder
 import LayoutStats from './components/LayoutStats';
 import LayoutList from './components/LayoutList';
 import LayoutFormDialog from './components/LayoutFormDialog';
@@ -22,12 +20,20 @@ export default function LayoutManager() {
       id: `layout-${Date.now()}`,
       name: values.name,
       description: values.description,
+      type: values.type,
       status: 'draft',
       version: 1,
       lastModified: new Date().toISOString(),
-      fields: values.fields.map((field, index) => ({
+      fields: values.fields.map((field, index): LayoutField => ({
         id: `field-${Date.now()}-${index}`,
-        ...field
+        name: field.name,
+        type: field.type,
+        description: field.description,
+        required: field.required,
+        category: field.category || 'General',
+        validation: field.validation,
+        order: index,
+        customProperties: {}
       }))
     };
 
@@ -39,11 +45,6 @@ export default function LayoutManager() {
     });
   };
 
-  const handleEditLayout = (layout: Layout) => {
-    setSelectedLayout(layout);
-    setIsCreateDialogOpen(true);
-  };
-
   const handleUpdateLayout = (values: LayoutFormValues) => {
     if (!selectedLayout) return;
 
@@ -51,10 +52,18 @@ export default function LayoutManager() {
       ...selectedLayout,
       name: values.name,
       description: values.description,
+      type: values.type,
       lastModified: new Date().toISOString(),
-      fields: values.fields.map((field, index) => ({
+      fields: values.fields.map((field, index): LayoutField => ({
         id: selectedLayout.fields[index]?.id || `field-${Date.now()}-${index}`,
-        ...field
+        name: field.name,
+        type: field.type,
+        description: field.description,
+        required: field.required,
+        category: field.category || 'General',
+        validation: field.validation,
+        order: index,
+        customProperties: selectedLayout.fields[index]?.customProperties || {}
       }))
     };
 
@@ -69,6 +78,11 @@ export default function LayoutManager() {
       title: "Layout Updated",
       description: "Layout has been updated successfully."
     });
+  };
+
+  const handleEditLayout = (layout: Layout) => {
+    setSelectedLayout(layout);
+    setIsCreateDialogOpen(true);
   };
 
   const handleDeleteLayout = (layout: Layout) => {
@@ -110,7 +124,7 @@ export default function LayoutManager() {
         open={isCreateDialogOpen}
         onOpenChange={handleDialogClose}
         onSubmit={selectedLayout ? handleUpdateLayout : handleCreateLayout}
-        initialData={selectedLayout || undefined}
+        initialData={selectedLayout}
       />
     </div>
   );
