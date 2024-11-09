@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  
+  const baseUrl = import.meta.env.BASE_URL;
 
   const navigationItems = [
     {
@@ -44,7 +46,19 @@ const MainLayout = () => {
       {/* Fixed Header */}
       <header className="sticky top-0 z-50 bg-white border-b">
         <div className="px-6 h-14 flex items-center justify-between">
-          <div className="font-semibold text-xl">AxTract</div>
+          <div className="flex items-center">
+            <Button 
+              variant="ghost" 
+              className="p-0 hover:bg-transparent" 
+              onClick={() => navigate(ROUTES.DASHBOARD)}
+            >
+              <img 
+                src={`${baseUrl}axtract-logo.svg`}
+                alt="AxTract Logo"
+                className="h-8 w-auto"
+              />
+            </Button>
+          </div>
           <nav className="flex items-center gap-1">
             {navigationItems.map((item) => (
               <Button
