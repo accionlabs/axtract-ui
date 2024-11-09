@@ -1,43 +1,41 @@
-// src/routes/router.tsx
-import { createBrowserRouter, RouteObject } from 'react-router-dom';
-import MainLayout from '@/components/shared/MainLayout';
-import { Dashboard } from '@/features/dashboard';
+import { createBrowserRouter } from 'react-router-dom';
 import { ROUTES } from './constants';
+import MainLayout from '@/components/shared/MainLayout';
+import Dashboard from '@/features/dashboard/Dashboard';
+import LayoutManager from '@/features/layouts/LayoutManager';
+import FileManager from '@/features/files/FileManager';
+import ScheduleManager from '@/features/schedules/ScheduleManager';
 
-const routes: RouteObject[] = [
+// Get the base URL from Vite's env
+const baseUrl = import.meta.env.BASE_URL;
+
+export const router = createBrowserRouter(
+  [
+    {
+      path: '/',
+      element: <MainLayout />,
+      children: [
+        {
+          path: '',
+          element: <Dashboard />,
+        },
+        {
+          path: ROUTES.LAYOUT_MANAGER.replace('/', ''),
+          element: <LayoutManager />,
+        },
+        {
+          path: ROUTES.FILE_MANAGER.replace('/', ''),
+          element: <FileManager />,
+        },
+        {
+          path: ROUTES.SCHEDULE_MANAGER.replace('/', ''),
+          element: <ScheduleManager />,
+        },
+      ],
+    },
+  ],
   {
-    path: '/',
-    element: <MainLayout />,
-    children: [
-      {
-        path: ROUTES.DASHBOARD,
-        element: <Dashboard />,
-      },
-      {
-        path: ROUTES.LAYOUT_MANAGER,
-        async lazy() {
-          const { LayoutManager } = await import('@/features/layouts');
-          return { Component: LayoutManager };
-        },
-      },
-      {
-        path: ROUTES.FILE_MANAGER,
-        async lazy() {
-          const { FileManager } = await import('@/features/files');
-          return { Component: FileManager };
-        },
-      },
-      {
-        path: ROUTES.SCHEDULE_MANAGER,
-        async lazy() {
-          const { ScheduleManager } = await import('@/features/schedules');
-          return { Component: ScheduleManager };
-        },
-      },
-    ],
-  },
-];
-
-export const router = createBrowserRouter(routes);
-
-export default router;
+    // Use the base URL from Vite
+    basename: baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl,
+  }
+);
