@@ -8,8 +8,8 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
-  DragOverlay,
-  DragStartEvent
+  DragStartEvent,
+  DragOverlay
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 
@@ -49,71 +49,72 @@ import {
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// Import mock data and types
+// Import data and types
 import {
   getLibraryFieldsByType,
   generateSampleDataForField,
   FIELD_CATEGORIES
 } from '../mockData';
-import { Layout, LayoutField, StandardField, LayoutFormValues, LayoutType, Field } from '../types';
-// Add Field type
+import {
+  Layout,
+  LayoutField,
+  LayoutFormValues,
+  LayoutFormField,
+  LayoutType,
+  StandardField
+} from '../types';
+
 import FieldSelector from './FieldSelector';
 import DroppableFieldList from './DroppableFieldList';
 
-// Define layout type for the form
-type FormLayoutType = 'claims' | 'eligibility' | 'wellness';
+// Field Validation Schema
+const validationSchema = z.object({
+  required: z.boolean().optional(),
+  pattern: z.string().optional(),
+  minLength: z.number().optional(),
+  maxLength: z.number().optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  precision: z.number().optional(),
+  enum: z.array(z.string()).optional()
+}).optional();
 
+// Layout Form Field Schema (matches LayoutFormField)
+const layoutFormFieldSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, 'Field name is required'),
+  type: z.enum(['string', 'number', 'date', 'boolean', 'decimal']),
+  description: z.string(),
+  required: z.boolean(),
+  category: z.string().optional(),
+  validation: validationSchema,
+  customProperties: z.record(z.any()).optional()
+});
+
+
+// Form Schema (matches LayoutFormValues)
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
-  type: z.enum(['claims', 'eligibility', 'wellness'] as const),
-  fields: z.array(z.object({
-    id: z.string(),
-    name: z.string().min(1, 'Field name is required'),
-    type: z.enum(['string', 'number', 'date', 'boolean', 'decimal']),
-    description: z.string(),
-    required: z.boolean(),
-    category: z.string(),
-    order: z.number(),
-    validation: z.object({
-      required: z.boolean().optional(),
-      pattern: z.string().optional(),
-      minLength: z.number().optional(),
-      maxLength: z.number().optional(),
-      min: z.number().optional(),
-      max: z.number().optional(),
-      precision: z.number().optional(),
-      enum: z.array(z.string()).optional(),
-    }).optional(),
-    customProperties: z.record(z.any()).optional()
-  }))
+  type: z.enum(['claims', 'eligibility', 'wellness']),
+  fields: z.array(layoutFormFieldSchema) // Using LayoutFormField schema here, not LayoutField
 });
 
-// Create separate type guards for Field and StandardField
-const isStandardField = (field: any): field is StandardField => {
-  return 'id' in field && 'name' in field && 'type' in field && 'category' in field;
-};
-
-// Update the conversion function to handle both types safely
-const convertFieldToLayoutField = (field: StandardField | Field, order: number): LayoutField => {
-  const isStd = isStandardField(field);
-
-  return {
-    id: `field-${Date.now()}-${order}`,
-    name: field.name,
-    type: field.type,
-    description: field.description,
-    required: field.required,
-    // Use type guard to safely access StandardField properties
-    category: isStd ? field.category : 'General',
-    order,
-    // Use type guard to safely access StandardField properties
-    validation: isStd ? field.validation || {} : {},
-    customProperties: {}
-  };
-};
-
 type FormSchema = z.infer<typeof formSchema>;
+
+
+// Add this helper function at the top with other helpers
+const convertToLayoutField = (formField: z.infer<typeof layoutFormFieldSchema>, order: number): LayoutField => ({
+  id: formField.id || `field-${Date.now()}`,
+  name: formField.name,
+  type: formField.type,
+  description: formField.description,
+  required: formField.required,
+  category: formField.category || 'General',
+  order,
+  validation: formField.validation,
+  customProperties: formField.customProperties || {}
+});
 
 interface LayoutFormDialogProps {
   open: boolean;
@@ -131,17 +132,14 @@ export default function LayoutFormDialog({
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [activeDragItem, setActiveDragItem] = React.useState<any>(null);
   const [activeTab, setActiveTab] = React.useState('general');
-  // Add new state to track whether type has been selected
   const [hasSelectedType, setHasSelectedType] = React.useState(!!initialData);
 
-
-  // Setup form with proper type handling
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData?.name || '',
       description: initialData?.description || '',
-      type: (initialData?.type as FormLayoutType) || 'claims',
+      type: (initialData?.type as LayoutType) || 'claims',
       fields: initialData?.fields.map(field => ({
         id: field.id,
         name: field.name,
@@ -149,9 +147,8 @@ export default function LayoutFormDialog({
         description: field.description,
         required: field.required,
         category: field.category,
-        order: field.order,
         validation: field.validation,
-        customProperties: field.customProperties || {}
+        customProperties: field.customProperties
       })) || []
     }
   });
@@ -162,17 +159,18 @@ export default function LayoutFormDialog({
     return getLibraryFieldsByType(type);
   }, [form.watch('type')]);
 
-  // Convert readonly arrays to mutable arrays for categories
+  // Get categories for current layout type
   const layoutCategories = React.useMemo(() => {
     const type = form.watch('type') as LayoutType;
     return [...FIELD_CATEGORIES[type]];
   }, [form.watch('type')]);
 
-  // Generate sample data for preview
   const sampleData = React.useMemo(() => {
-    const fields = form.watch('fields');
-    return fields.reduce((acc, field) => {
-      acc[field.name] = generateSampleDataForField(field);
+    const formFields = form.watch('fields');
+    return formFields.reduce((acc, field, index) => {
+      // Convert the form field to a layout field before generating sample data
+      const layoutField = convertToLayoutField(field, index);
+      acc[field.name] = generateSampleDataForField(layoutField);
       return acc;
     }, {} as Record<string, any>);
   }, [form.watch('fields')]);
@@ -197,18 +195,23 @@ export default function LayoutFormDialog({
     if (!over) return;
 
     if (active.data?.current?.type === 'FIELD' && over.id === 'droppable-field-list') {
-      const draggedField = active.data.current.field;
+      const draggedField = active.data.current.field as StandardField;
+      const currentFields = form.getValues('fields');
 
-      if (isStandardField(draggedField)) {
-        const currentFields = form.getValues('fields');
-        const layoutField = convertFieldToLayoutField(draggedField, currentFields.length);
+      const formField: LayoutFormField = {
+        id: `field-${Date.now()}`,
+        name: draggedField.name,
+        type: draggedField.type,
+        description: draggedField.description,
+        required: draggedField.required,
+        category: draggedField.category || 'General',
+        validation: draggedField.validation,
+        customProperties: {}
+      };
 
-        form.setValue('fields', [...currentFields, layoutField], {
-          shouldDirty: true,
-          shouldTouch: true,
-          shouldValidate: true
-        });
-      }
+      form.setValue('fields', [...currentFields, formField], {
+        shouldValidate: true
+      });
     }
 
     if (active.data?.current?.type === 'LAYOUT_FIELD' && over.id !== active.id) {
@@ -218,11 +221,7 @@ export default function LayoutFormDialog({
         .findIndex(field => field.id === over.id);
 
       if (oldIndex !== -1 && newIndex !== -1) {
-        const newFields = arrayMove(form.getValues('fields'), oldIndex, newIndex)
-          .map((field, index) => ({
-            ...field,
-            order: index
-          }));
+        const newFields = arrayMove(form.getValues('fields'), oldIndex, newIndex);
         form.setValue('fields', newFields);
       }
     }
@@ -232,16 +231,15 @@ export default function LayoutFormDialog({
   };
 
   const handleFormSubmit = (data: FormSchema) => {
-    // Convert FormSchema to LayoutFormValues
-    const formValues: LayoutFormValues = {
+    onSubmit({
       name: data.name,
       description: data.description,
-      type: data.type as LayoutType,
+      type: data.type,
       fields: data.fields
-    };
-    onSubmit(formValues);
+    });
   };
 
+  // Layout type selection component
   const TypeSelection = () => (
     <FormField
       control={form.control}
@@ -385,21 +383,28 @@ export default function LayoutFormDialog({
                                 </div>
 
                                 <DroppableFieldList
-                                  fields={form.watch('fields')}
+                                  fields={form.watch('fields').map((field, index) => convertToLayoutField(field, index))}
                                   onFieldRemove={(fieldId) => {
                                     const currentFields = form.getValues('fields')
-                                      .filter(f => f.id !== fieldId);
+                                      .filter(f => f.id !== fieldId)
+                                      .map((field) => ({
+                                        ...field,
+                                        category: field.category || 'General',
+                                        customProperties: field.customProperties || {}
+                                      }));
                                     form.setValue('fields', currentFields);
                                   }}
                                   onFieldUpdate={(fieldId, updates) => {
                                     const currentFields = form.getValues('fields');
-                                    const fieldIndex = currentFields
-                                      .findIndex(f => f.id === fieldId);
+                                    const fieldIndex = currentFields.findIndex(f => f.id === fieldId);
                                     if (fieldIndex > -1) {
                                       const updatedFields = [...currentFields];
+                                      const currentField = updatedFields[fieldIndex];
                                       updatedFields[fieldIndex] = {
-                                        ...updatedFields[fieldIndex],
-                                        ...updates
+                                        ...currentField,
+                                        ...updates,
+                                        category: updates.category || currentField.category || 'General',
+                                        customProperties: updates.customProperties || currentField.customProperties || {},
                                       };
                                       form.setValue('fields', updatedFields);
                                     }

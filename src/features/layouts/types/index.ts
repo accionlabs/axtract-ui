@@ -1,8 +1,8 @@
 // src/features/layouts/types/index.ts
 
 export type FieldType = 'string' | 'number' | 'date' | 'boolean' | 'decimal';
+export type LayoutType = 'claims' | 'eligibility' | 'wellness';
 export type LayoutStatus = 'draft' | 'pending' | 'active';
-export type LayoutType = 'claims' | 'wellness' | 'eligibility';
 
 export interface FieldValidation {
   required?: boolean;
@@ -15,24 +15,37 @@ export interface FieldValidation {
   enum?: string[];
 }
 
-export interface Field {
+export interface StandardField {
   id: string;
   name: string;
   type: FieldType;
   description: string;
   required: boolean;
-}
-
-export interface StandardField extends Field {
   category: string;
   validation?: FieldValidation;
 }
 
-export interface LayoutField extends StandardField {
+// Base interface for field properties
+interface BaseField {
+  name: string;
+  type: FieldType;
+  description: string;
+  required: boolean;
+  category?: string;
+  validation?: FieldValidation;
+}
+
+// Form field type used in form submission
+export interface LayoutFormField extends BaseField {
+  id?: string; // Optional as it might not exist for new fields
+  customProperties?: Record<string, any>; // Optional custom properties
+}
+
+// Full field type used in layout
+export interface LayoutField extends BaseField {
+  id: string;
   order: number;
-  customProperties?: {
-    [key: string]: any;
-  };
+  customProperties: Record<string, any>;
 }
 
 export interface Layout {
@@ -46,28 +59,9 @@ export interface Layout {
   fields: LayoutField[];
 }
 
-export interface LayoutFormField {
-  name: string;
-  type: FieldType;
-  required: boolean;
-  description: string;
-  category?: string;
-  validation?: FieldValidation;
-}
-
 export interface LayoutFormValues {
   name: string;
   description: string;
   type: LayoutType;
   fields: LayoutFormField[];
-}
-
-export interface DraggableFieldProps {
-  field: StandardField;
-  isDragging?: boolean;
-}
-
-export interface DroppableAreaProps {
-  onDrop: (field: StandardField) => void;
-  children: React.ReactNode;
 }
