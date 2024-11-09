@@ -11,7 +11,6 @@ import {
 import {
     Form,
     FormControl,
-    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -38,9 +37,13 @@ import { Badge } from '@/components/ui/badge';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Plus, Clock, Calendar, Bell } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { ScheduleConfiguration, WeekDay } from '../types';
 import { commonTimezones, weekDayOptions, monthDayOptions, mockFiles } from '../mockData';
+
+// Define weekday type to ensure type safety
+const WeekDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+type WeekDayType = typeof WeekDays[number];
 
 const scheduleFormSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -49,7 +52,7 @@ const scheduleFormSchema = z.object({
     frequency: z.enum(['daily', 'weekly', 'monthly']),
     time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format'),
     timezone: z.string().min(1, 'Timezone is required'),
-    weekDays: z.array(z.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const)).optional(),
+    weekDays: z.array(z.enum(WeekDays)).optional(),
     monthDays: z.array(z.number()).optional(),
     retryConfig: z.object({
         maxAttempts: z.number().min(1).max(10),
@@ -95,7 +98,7 @@ export default function ScheduleFormDialog({
             frequency: initialData?.frequency || 'daily',
             time: initialData?.time || '00:00',
             timezone: initialData?.timezone || 'UTC',
-            weekDays: initialData?.weekDays || [],
+            weekDays: (initialData?.weekDays || []) as WeekDayType[],
             monthDays: initialData?.monthDays || [],
             retryConfig: initialData?.retryConfig || {
                 maxAttempts: 3,
@@ -113,7 +116,6 @@ export default function ScheduleFormDialog({
     React.useEffect(() => {
         if (open) {
             if (initialData) {
-                console.log('Setting form data:', initialData); // Debug log
                 form.reset({
                     name: initialData.name,
                     description: initialData.description,
@@ -121,7 +123,7 @@ export default function ScheduleFormDialog({
                     frequency: initialData.frequency,
                     time: initialData.time,
                     timezone: initialData.timezone,
-                    weekDays: initialData.weekDays || [],
+                    weekDays: (initialData.weekDays || []) as WeekDayType[],
                     monthDays: initialData.monthDays || [],
                     retryConfig: {
                         maxAttempts: initialData.retryConfig?.maxAttempts || 3,
@@ -132,7 +134,6 @@ export default function ScheduleFormDialog({
                     notificationEmails: initialData.notificationEmails || []
                 });
             } else {
-                // Reset to default values when creating new schedule
                 form.reset({
                     name: '',
                     description: '',
@@ -165,6 +166,14 @@ export default function ScheduleFormDialog({
     const removeEmail = (email: string) => {
         const currentEmails = form.getValues('notificationEmails');
         form.setValue('notificationEmails', currentEmails.filter(e => e !== email));
+    };
+
+    const handleWeekDayToggle = (day: WeekDayType) => {
+        const currentDays = form.getValues('weekDays') || [];
+        const newDays = currentDays.includes(day)
+            ? currentDays.filter(d => d !== day)
+            : [...currentDays, day];
+        form.setValue('weekDays', newDays);
     };
 
     const handleSubmit = (data: FormValues) => {
@@ -291,14 +300,9 @@ export default function ScheduleFormDialog({
                                                             <Button
                                                                 key={day.value}
                                                                 type="button"
-                                                                variant={field.value?.includes(day.value) ? "default" : "outline"}
+                                                                variant={field.value?.includes(day.value as WeekDayType) ? "default" : "outline"}
                                                                 size="sm"
-                                                                onClick={() => {
-                                                                    const newValue = field.value?.includes(day.value)
-                                                                        ? field.value.filter(d => d !== day.value)
-                                                                        : [...(field.value || []), day.value];
-                                                                    form.setValue('weekDays', newValue);
-                                                                }}
+                                                                onClick={() => handleWeekDayToggle(day.value as WeekDayType)}
                                                             >
                                                                 {day.label}
                                                             </Button>

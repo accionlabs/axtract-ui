@@ -88,7 +88,7 @@ export const mockSchedules: ScheduleConfiguration[] = [
     timezone: 'America/Chicago',
     weekDays: ['sunday'],
     lastRun: getPastDate(10),
-    nextRun: null,
+    nextRun: '',
     createdAt: getPastDate(45),
     updatedAt: getPastDate(2),
     notifyOnSuccess: true,

@@ -1,5 +1,5 @@
 // src/features/layouts/mockData.ts
-import { Layout, Field, FieldType, LayoutStatus, LayoutFormValues } from './types';
+import { Layout, Field, LayoutFormValues } from './types';
 
 const generateId = (): string => Math.random().toString(36).substr(2, 9);
 

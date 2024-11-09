@@ -1,4 +1,3 @@
-// src/features/schedules/components/ScheduleList.tsx
 import { ScheduleConfiguration } from '../types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +9,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Edit, Trash2, Calendar, Clock, AlertCircle } from 'lucide-react';
 
 interface ScheduleListProps {
@@ -76,7 +81,16 @@ export default function ScheduleList({ schedules, onEdit, onDelete }: ScheduleLi
                 <TableCell>
                   <div className="flex items-center gap-2">
                     {schedule.notifyOnFailure && (
-                      <AlertCircle className="h-4 w-4 text-muted-foreground" title="Failure notifications enabled" />
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Failure notifications enabled</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                     <Button variant="ghost" size="sm" onClick={() => onEdit(schedule)}>
                       <Edit className="h-4 w-4" />

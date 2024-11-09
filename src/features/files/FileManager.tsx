@@ -30,6 +30,7 @@ export default function FileManager() {
   };
 
   const handleEditFile = (file: FileConfiguration) => {
+    selectedFile;
     setSelectedFile(file);
     setIsCreateDialogOpen(true);
   };

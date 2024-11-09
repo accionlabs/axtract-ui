@@ -6,8 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { FileConfiguration, FileFormat } from '../types';
+import { FileConfiguration, FileFormat, SFTPConfiguration } from '../types';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
+const defaultSFTPConfig: SFTPConfiguration = {
+  host: '',
+  port: 22,
+  username: '',
+  path: '',
+};
 
 interface FileCreationFormProps {
   onSubmit: (data: Partial<FileConfiguration>) => void;
@@ -59,6 +65,45 @@ export default function FileCreationForm({ onSubmit, onCancel, availableLayouts 
     setFormData(prev => ({ ...prev, ...update }));
   };
 
+  const handleSFTPConfigUpdate = (field: keyof SFTPConfiguration, value: string | number) => {
+    if (formData.sftpConfig) {
+      const updatedConfig: SFTPConfiguration = {
+        ...formData.sftpConfig,
+        [field]: value
+      };
+
+      updateFormData({
+        sftpConfig: updatedConfig
+      });
+    }
+  };
+
+  const handleSFTPPortChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const portValue = parseInt(e.target.value);
+    const port = isNaN(portValue) ? 22 : Math.max(1, Math.min(65535, portValue));
+    handleSFTPConfigUpdate('port', port);
+  };
+
+  const handleSFTPHostChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const host = e.target.value.trim();
+    handleSFTPConfigUpdate('host', host);
+  };
+
+  const handleSFTPUserChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const username = e.target.value.trim();
+    handleSFTPConfigUpdate('username', username);
+  };
+
+  const handleSFTPPathChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const path = e.target.value.trim();
+    handleSFTPConfigUpdate('path', path);
+  };
+
+  const handleSFTPHostKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const knownHostKey = e.target.value.trim();
+    handleSFTPConfigUpdate('knownHostKey', knownHostKey);
+  };
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
@@ -69,8 +114,8 @@ export default function FileCreationForm({ onSubmit, onCancel, availableLayouts 
           {/* Progress indicator */}
           <div className="flex justify-between mb-8">
             {['Basic Info', 'File Format', 'SFTP Setup', 'Schedule'].map((label, index) => (
-              <div 
-                key={label} 
+              <div
+                key={label}
                 className={`flex items-center ${index + 1 === step ? 'text-primary' : 'text-gray-400'}`}
               >
                 <div className={`
@@ -140,14 +185,16 @@ export default function FileCreationForm({ onSubmit, onCancel, availableLayouts 
             </div>
           )}
 
-          {/* Step 3: SFTP Setup */}
+          {/* SFTP Setup Section */}
           {step === 3 && (
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <Switch
                   checked={!!formData.sftpConfig}
-                  onCheckedChange={(checked) => 
-                    updateFormData({ sftpConfig: checked ? {} : undefined })
+                  onCheckedChange={(checked) =>
+                    updateFormData({
+                      sftpConfig: checked ? defaultSFTPConfig : undefined
+                    })
                   }
                 />
                 <Label>Enable SFTP Transfer</Label>
@@ -159,32 +206,48 @@ export default function FileCreationForm({ onSubmit, onCancel, availableLayouts 
                     <Label htmlFor="sftpHost">SFTP Host</Label>
                     <Input
                       id="sftpHost"
-                      value={formData.sftpConfig.host || ''}
-                      onChange={(e) => updateFormData({
-                        sftpConfig: { ...formData.sftpConfig, host: e.target.value }
-                      })}
+                      value={formData.sftpConfig.host}
+                      onChange={handleSFTPHostChange}
                       placeholder="sftp.example.com"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="sftpPort">Port</Label>
+                    <Input
+                      id="sftpPort"
+                      type="number"
+                      min={1}
+                      max={65535}
+                      value={formData.sftpConfig.port}
+                      onChange={handleSFTPPortChange}
+                      placeholder="22"
                     />
                   </div>
                   <div>
                     <Label htmlFor="sftpUsername">Username</Label>
                     <Input
                       id="sftpUsername"
-                      value={formData.sftpConfig.username || ''}
-                      onChange={(e) => updateFormData({
-                        sftpConfig: { ...formData.sftpConfig, username: e.target.value }
-                      })}
+                      value={formData.sftpConfig.username}
+                      onChange={handleSFTPUserChange}
+                      placeholder="username"
                     />
                   </div>
                   <div>
                     <Label htmlFor="sftpPath">Remote Path</Label>
                     <Input
                       id="sftpPath"
-                      value={formData.sftpConfig.path || ''}
-                      onChange={(e) => updateFormData({
-                        sftpConfig: { ...formData.sftpConfig, path: e.target.value }
-                      })}
+                      value={formData.sftpConfig.path}
+                      onChange={handleSFTPPathChange}
                       placeholder="/uploads"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="knownHostKey">Known Host Key (Optional)</Label>
+                    <Input
+                      id="knownHostKey"
+                      value={formData.sftpConfig.knownHostKey}
+                      onChange={handleSFTPHostKeyChange}
+                      placeholder="SSH host key"
                     />
                   </div>
                 </>
@@ -198,11 +261,11 @@ export default function FileCreationForm({ onSubmit, onCancel, availableLayouts 
               <div className="flex items-center space-x-2">
                 <Switch
                   checked={!!formData.scheduleConfig}
-                  onCheckedChange={(checked) => 
-                    updateFormData({ 
-                      scheduleConfig: checked 
+                  onCheckedChange={(checked) =>
+                    updateFormData({
+                      scheduleConfig: checked
                         ? { frequency: 'daily', time: '00:00', timezone: 'UTC' }
-                        : undefined 
+                        : undefined
                     })
                   }
                 />
@@ -215,7 +278,7 @@ export default function FileCreationForm({ onSubmit, onCancel, availableLayouts 
                     <Label>Frequency</Label>
                     <Select
                       value={formData.scheduleConfig.frequency}
-                      onValueChange={(value: 'daily' | 'weekly' | 'monthly') => 
+                      onValueChange={(value: 'daily' | 'weekly' | 'monthly') =>
                         updateFormData({
                           scheduleConfig: { ...formData.scheduleConfig!, frequency: value }
                         })
