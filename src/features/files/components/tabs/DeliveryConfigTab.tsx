@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { UseFormReturn } from 'react-hook-form';
 import { FormSchema } from '../FileFormDialog';
+import { ScrollArea } from '@radix-ui/react-scroll-area';
 
 interface DeliveryConfigTabProps {
   form: UseFormReturn<FormSchema>;
@@ -24,7 +25,8 @@ export function DeliveryConfigTab({
   setShowEncryption
 }: DeliveryConfigTabProps) {
   return (
-    <>
+    <ScrollArea className="h-[calc(100vh-15rem)]">
+
       <Card className="mb-6">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>SFTP Configuration</CardTitle>
@@ -114,7 +116,7 @@ export function DeliveryConfigTab({
         )}
       </Card>
 
-      <Card>
+      <Card className="mb-6">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>PGP Encryption</CardTitle>
           <Switch
@@ -144,6 +146,6 @@ export function DeliveryConfigTab({
           </CardContent>
         )}
       </Card>
-    </>
+    </ScrollArea>
   );
 }
