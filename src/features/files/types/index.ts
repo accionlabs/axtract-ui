@@ -1,4 +1,5 @@
-// src/features/fileManager/types.ts
+// src/features/files/types/index.ts
+
 export type FileFormat = 'CSV' | 'TSV' | 'FIXED';
 export type FileStatus = 'draft' | 'active' | 'inactive';
 
@@ -37,67 +38,22 @@ export interface FileConfiguration {
   encryptionConfig?: EncryptionConfiguration;
 }
 
-export type FieldType = 'string' | 'number' | 'date' | 'boolean' | 'decimal';
-export type LayoutStatus = 'draft' | 'pending' | 'active';
-export type LayoutType = 'claims' | 'wellness' | 'eligibility';
-
-export interface FieldValidation {
-  required?: boolean;
-  pattern?: string;
-  minLength?: number;
-  maxLength?: number;
-  min?: number;
-  max?: number;
-  precision?: number;
-  enum?: string[];
-}
-
-export interface BaseField {
-  id: string;
+export interface FileFormValues {
   name: string;
-  type: FieldType;
-  description: string;
-  required: boolean;
+  layoutId: string;
+  format: FileFormat;
+  sftpConfig?: SFTPConfiguration;
+  scheduleConfig?: ScheduleConfiguration;
+  encryptionConfig?: EncryptionConfiguration;
 }
 
-export interface StandardField extends BaseField {
-  category: string;
-  validation?: FieldValidation;
+export interface FileListProps {
+  files: FileConfiguration[];
+  onEdit: (file: FileConfiguration) => void;
+  onDelete: (file: FileConfiguration) => void;
+  onStatusChange: (fileId: string, newStatus: FileStatus) => void;
 }
 
-export interface LayoutField extends StandardField {
-  order: number;
-  customProperties?: {
-    [key: string]: any;
-  };
-}
-
-export interface Layout {
-  id: string;
-  name: string;
-  description: string;
-  type: LayoutType;
-  status: LayoutStatus;
-  version: number;
-  lastModified: string;
-  fields: LayoutField[];
-}
-
-export interface LayoutFormField {
-  id: string;
-  name: string;
-  type: FieldType;
-  description: string;
-  required: boolean;
-  category: string;
-  order: number;
-  validation?: FieldValidation;
-  customProperties?: Record<string, any>;
-}
-
-export interface LayoutFormValues {
-  name: string;
-  description: string;
-  type: LayoutType;
-  fields: LayoutFormField[];
+export interface FileStatsProps {
+  files: FileConfiguration[];
 }
