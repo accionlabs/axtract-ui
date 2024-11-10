@@ -25,7 +25,7 @@ export function DeliveryConfigTab({
   setShowEncryption
 }: DeliveryConfigTabProps) {
   return (
-    <ScrollArea className="h-[calc(100vh-15rem)]">
+    <ScrollArea className="h-[calc(100vh-25rem)]">
 
       <Card className="mb-6">
         <CardHeader className="flex flex-row items-center justify-between">
