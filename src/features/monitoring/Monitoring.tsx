@@ -1,5 +1,7 @@
 // src/features/monitoring/components/Monitoring.tsx
 
+// src/features/monitoring/Monitoring.tsx
+
 import React from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -24,22 +26,26 @@ import {
 
 import { MonitoringFilters } from './types';
 import { MonitoringStats, MonitoringFiltersBar, MonitoringTable } from './components';
-import { 
-  mockMonitoringData, 
-  calculateMockStats, 
-  initialFilters 
-} from './mockData';
+import { useAppState } from '@/context/AppStateContext';
+import { initialFilters } from './mockData';
 
 export function Monitoring() {
-  // State
+  // Get state and actions from context
+  const { 
+    state: { processes, files },
+    updateProcessStatus,
+    updateFileStatus 
+  } = useAppState();
+  
+  // Local state
   const [isLoading, setIsLoading] = React.useState(false);
   const [filters, setFilters] = React.useState<MonitoringFilters>(initialFilters);
   const [processToCancel, setProcessToCancel] = React.useState<string | null>(null);
   const { toast } = useToast();
 
-  // Filtered data (in real app, this would be an API call)
+  // Filter data
   const filteredData = React.useMemo(() => {
-    let filtered = [...mockMonitoringData];
+    let filtered = [...processes];
 
     // Apply filters
     if (filters.fileName) {
@@ -78,7 +84,7 @@ export function Monitoring() {
     });
 
     return filtered;
-  }, [filters]);
+  }, [processes, filters]);
 
   // Paginated data
   const paginatedData = React.useMemo(() => {
@@ -87,17 +93,13 @@ export function Monitoring() {
     return filteredData.slice(startIndex, endIndex);
   }, [filteredData, filters.page, filters.pageSize]);
 
-  // Stats calculation
-  const stats = React.useMemo(() => 
-    calculateMockStats(filteredData), 
-    [filteredData]
-  );
-
   // Filter change handler
   const handleFiltersChange = (newFilters: Partial<MonitoringFilters>) => {
     setFilters(current => ({
       ...current,
-      ...newFilters
+      ...newFilters,
+      // Reset to first page when filters change (except for page changes)
+      page: 'page' in newFilters ? newFilters.page || 1 : 1
     }));
   };
 
@@ -105,9 +107,23 @@ export function Monitoring() {
   const handleRetry = async (processId: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      const process = processes.find(p => p.processId === processId);
+      if (!process) throw new Error('Process not found');
+
+      // Update process status to pending
+      updateProcessStatus(processId, 'pending');
+
+      // Simulate processing
+      setTimeout(() => {
+        updateProcessStatus(processId, 'processing');
+        
+        // Simulate completion after random time
+        setTimeout(() => {
+          const success = Math.random() > 0.3; // 70% success rate
+          updateProcessStatus(processId, success ? 'completed' : 'failed');
+        }, Math.random() * 3000 + 2000);
+      }, 1000);
+
       toast({
         title: "Process Retry Initiated",
         description: `Process ${processId} has been queued for retry.`
@@ -133,9 +149,20 @@ export function Monitoring() {
 
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const process = processes.find(p => p.processId === processToCancel);
+      if (!process) throw new Error('Process not found');
+
+      // Update process status
+      updateProcessStatus(processToCancel, 'cancelled');
       
+      // Update associated file status if exists
+      if (process.fileId) {
+        const file = files.find(f => f.id === process.fileId);
+        if (file && file.status === 'active') {
+          updateFileStatus(file.id, 'inactive');
+        }
+      }
+
       toast({
         title: "Process Cancelled",
         description: `Process ${processToCancel} has been cancelled.`
@@ -152,24 +179,34 @@ export function Monitoring() {
     }
   };
 
-  // Initial data fetch
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Auto-refresh functionality
   React.useEffect(() => {
-    fetchData();
-  }, []); // Initial fetch only
+    const autoUpdateProcess = () => {
+      processes.forEach(process => {
+        if (process.status === 'processing') {
+          // Randomly complete or fail processes
+          if (Math.random() > 0.7) { // 30% chance to complete/fail
+            const success = Math.random() > 0.2; // 80% success rate
+            updateProcessStatus(
+              process.processId, 
+              success ? 'completed' : 'failed'
+            );
+          }
+        }
+      });
+    };
 
-  // Refresh handler
+    const interval = setInterval(autoUpdateProcess, 5000);
+    return () => clearInterval(interval);
+  }, [processes, updateProcessStatus]);
+
+  // Manual refresh handler
   const handleRefresh = () => {
-    fetchData();
+    setIsLoading(true);
+    // Simulate refresh delay
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
   };
 
   return (
@@ -190,7 +227,10 @@ export function Monitoring() {
       </div>
 
       {/* Stats Cards */}
-      <MonitoringStats stats={stats} isLoading={isLoading} />
+      <MonitoringStats 
+        processes={processes}
+        isLoading={isLoading} 
+      />
 
       {/* Filter Bar */}
       <Card>

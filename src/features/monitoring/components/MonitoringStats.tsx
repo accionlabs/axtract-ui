@@ -1,18 +1,57 @@
 // src/features/monitoring/components/MonitoringStats.tsx
 
-import { MonitoringStatsData } from "../types";
+import { useMemo } from 'react';
+import { FileProcessingDetails } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, FileCheck, AlertCircle, Clock, Activity } from "lucide-react";
-import { formatDuration } from "../mockData";
+import { 
+  FileCheck, 
+  AlertCircle, 
+  Clock, 
+  Activity
+} from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface MonitoringStatsProps {
-  stats: MonitoringStatsData;
+  processes: FileProcessingDetails[];
   isLoading?: boolean;
 }
 
-export function MonitoringStats({ stats, isLoading = false }: MonitoringStatsProps) {
+export function MonitoringStats({ processes, isLoading = false }: MonitoringStatsProps) {
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const totalProcesses = processes.length;
+    const completedProcesses = processes.filter(p => p.status === 'completed').length;
+    const failedProcesses = processes.filter(p => p.status === 'failed').length;
+    const activeProcesses = processes.filter(p => p.status === 'processing').length;
+    const pendingProcesses = processes.filter(p => p.status === 'pending').length;
+    const cancelledProcesses = processes.filter(p => p.status === 'cancelled').length;
+
+    const successRate = totalProcesses > 0
+      ? (completedProcesses / totalProcesses) * 100
+      : 0;
+
+    // Calculate processing times for completed processes
+    const processingTimes = processes
+      .filter(p => p.status === 'completed' && p.startTime && p.endTime)
+      .map(p => new Date(p.endTime!).getTime() - new Date(p.startTime!).getTime());
+
+    const averageProcessingTime = processingTimes.length > 0
+      ? Math.round(processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length / 1000)
+      : 0;
+
+    return {
+      totalProcesses,
+      completedProcesses,
+      failedProcesses,
+      activeProcesses,
+      pendingProcesses,
+      cancelledProcesses,
+      successRate: Math.round(successRate),
+      averageProcessingTime
+    };
+  }, [processes]);
+
   const StatCard = ({ 
     title, 
     value, 
@@ -72,78 +111,35 @@ export function MonitoringStats({ stats, isLoading = false }: MonitoringStatsPro
     </Card>
   );
 
-  const statsData = [
-    {
-      title: "Files in Progress",
-      value: stats.filesInProgress,
-      description: `${stats.filesInProgress} files currently being processed`,
-      icon: Loader2,
-      progress: (stats.filesInProgress / stats.totalFiles) * 100
-    },
-    {
-      title: "Success Rate",
-      value: `${stats.successRate}%`,
-      description: `${stats.completedToday} files completed today`,
-      icon: FileCheck,
-      progress: stats.successRate,
-      trend: {
-        value: 2.5, // This would come from backend comparing to previous period
-        label: "vs last period"
-      }
-    },
-    {
-      title: "Failed Files",
-      value: stats.failedFiles,
-      description: `${((stats.failedFiles / stats.totalFiles) * 100).toFixed(1)}% failure rate`,
-      icon: AlertCircle,
-      progress: (stats.failedFiles / stats.totalFiles) * 100
-    },
-    {
-      title: "Average Processing Time",
-      value: formatDuration(stats.averageProcessingTime),
-      description: `Based on ${stats.totalFiles} total files`,
-      icon: Clock
-    },
-    {
-      title: "Throughput",
-      value: stats.completedToday,
-      description: "Files completed in last 24 hours",
-      icon: Activity,
-      trend: {
-        value: 5.2, // This would come from backend
-        label: "vs previous day"
-      }
-    }
-  ];
-
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-      {statsData.map((stat, index) => (
-        <StatCard key={index} {...stat} />
-      ))}
-    </div>
-  );
-}
-
-// Loading state component
-export function MonitoringStatsLoading() {
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Card key={i}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <Skeleton className="h-4 w-[100px]" />
-            <Skeleton className="h-4 w-4" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-28" />
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-2 w-full mt-3" />
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <StatCard
+        title="Active Processes"
+        value={stats.activeProcesses}
+        description={`${stats.pendingProcesses} pending in queue`}
+        icon={Activity}
+        progress={(stats.activeProcesses / Math.max(stats.totalProcesses, 1)) * 100}
+      />
+      <StatCard
+        title="Success Rate"
+        value={`${stats.successRate}%`}
+        description={`${stats.completedProcesses} completed successfully`}
+        icon={FileCheck}
+        progress={stats.successRate}
+      />
+      <StatCard
+        title="Failed Processes"
+        value={stats.failedProcesses}
+        description={`${stats.cancelledProcesses} cancelled by user`}
+        icon={AlertCircle}
+        progress={(stats.failedProcesses / Math.max(stats.totalProcesses, 1)) * 100}
+      />
+      <StatCard
+        title="Average Time"
+        value={`${Math.floor(stats.averageProcessingTime / 60)}m ${stats.averageProcessingTime % 60}s`}
+        description={`Based on ${stats.completedProcesses} completed processes`}
+        icon={Clock}
+      />
     </div>
   );
 }
