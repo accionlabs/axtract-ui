@@ -1,63 +1,50 @@
-import { Layout } from '../types';
+// src/features/layouts/components/LayoutStats.tsx
+
+import { Layout, LayoutType } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Progress } from "@/components/ui/progress";
+import { FileText, FileCheck, AlertCircle, Clock } from 'lucide-react';
 import { 
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { useAppState } from '@/context/AppStateContext';
 
 interface LayoutStatsProps {
   layouts: Layout[];
 }
 
-interface StatCardProps {
-  title: string;
-  value: number | string;
-  description?: string;
-  icon: JSX.Element;
-  progress?: number;
-}
-
-const StatCard = ({ title, value, description, icon, progress }: StatCardProps) => (
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">
-        {title}
-      </CardTitle>
-      {icon}
-    </CardHeader>
-    <CardContent>
-      <div className="space-y-2">
-        <div className="text-2xl font-bold">{value}</div>
-        {description && (
-          <p className="text-xs text-muted-foreground">{description}</p>
-        )}
-        {progress !== undefined && (
-          <Progress value={progress} className="h-2" />
-        )}
-      </div>
-    </CardContent>
-  </Card>
-);
-
 export default function LayoutStats({ layouts }: LayoutStatsProps) {
-  // Calculate various statistics
-  const totalLayouts = layouts.length;
-  const activeLayouts = layouts.filter(l => l.status === 'active').length;
-  const pendingLayouts = layouts.filter(l => l.status === 'pending').length;
-  const draftLayouts = layouts.filter(l => l.status === 'draft').length;
+  const { state: { files, activities } } = useAppState();
 
-  // Calculate total fields across all layouts
-  const totalFields = layouts.reduce((sum, layout) => sum + layout.fields.length, 0);
-  
-  // Calculate average fields per layout
-  const avgFieldsPerLayout = totalLayouts ? Math.round(totalFields / totalLayouts) : 0;
+  // Calculate statistics with active file references
+  const statsWithFiles = {
+    total: layouts.length,
+    active: layouts.filter(l => l.status === 'active').length,
+    pending: layouts.filter(l => l.status === 'pending').length,
+    draft: layouts.filter(l => l.status === 'draft').length,
+    // Count files using each layout type
+    filesUsingLayouts: layouts.reduce((acc, layout) => {
+      acc[layout.id] = files.filter(f => f.layoutId === layout.id).length;
+      return acc;
+    }, {} as Record<string, number>),
+    // Get recent activity count
+    recentChanges: activities
+      .filter(a => a.type.toLowerCase().includes('layout'))
+      .length
+  };
+
+  // Calculate type distribution
+  const typeDistribution = layouts.reduce((acc, layout) => {
+    acc[layout.type] = (acc[layout.type] || 0) + 1;
+    return acc;
+  }, {} as Record<LayoutType, number>);
 
   // Calculate completion percentage
-  const completionPercentage = totalLayouts ? Math.round((activeLayouts / totalLayouts) * 100) : 0;
+  const completionPercentage = (statsWithFiles.active / Math.max(statsWithFiles.total, 1)) * 100;
 
   // Get most recent modification
   const mostRecentUpdate = layouts.length
@@ -73,50 +60,92 @@ export default function LayoutStats({ layouts }: LayoutStatsProps) {
     }).format(date);
   };
 
+  const StatCard = ({ 
+    title, 
+    value, 
+    description, 
+    icon: Icon, 
+    progress,
+    tooltip
+  }: {
+    title: string;
+    value: string | number;
+    description?: string;
+    icon: any;
+    progress?: number;
+    tooltip?: string;
+  }) => (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {title}
+              </CardTitle>
+              <Icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">
+                  {value}
+                </div>
+                {description && (
+                  <p className="text-xs text-muted-foreground">
+                    {description}
+                  </p>
+                )}
+                {progress !== undefined && (
+                  <Progress value={progress} className="h-2 mt-3" />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TooltipTrigger>
+        {tooltip && <TooltipContent>{tooltip}</TooltipContent>}
+      </Tooltip>
+    </TooltipProvider>
+  );
+
   return (
     <div className="space-y-6">
+      {/* Primary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div>
-                <StatCard
-                  title="Total Layouts"
-                  value={totalLayouts}
-                  description={`${totalFields} total fields configured`}
-                  icon={<FileText className="h-4 w-4 text-muted-foreground" />}
-                  progress={completionPercentage}
-                />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Average of {avgFieldsPerLayout} fields per layout</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <StatCard
+          title="Total Layouts"
+          value={statsWithFiles.total}
+          description={`${layouts.reduce((sum, l) => sum + l.fields.length, 0)} total fields configured`}
+          icon={FileText}
+          progress={completionPercentage}
+          tooltip={`${statsWithFiles.active} layouts active out of ${statsWithFiles.total}`}
+        />
 
         <StatCard
           title="Active Layouts"
-          value={activeLayouts}
-          description={`${((activeLayouts / totalLayouts) * 100).toFixed(1)}% of total layouts`}
-          icon={<CheckCircle className="h-4 w-4 text-green-500" />}
+          value={statsWithFiles.active}
+          description={`${Object.values(statsWithFiles.filesUsingLayouts).reduce((a, b) => a + b, 0)} files using layouts`}
+          icon={FileCheck}
+          tooltip="Layouts currently in use by files"
         />
 
         <StatCard
           title="Pending Review"
-          value={pendingLayouts}
-          description={pendingLayouts === 1 ? "1 layout awaiting review" : `${pendingLayouts} layouts awaiting review`}
-          icon={<Clock className="h-4 w-4 text-yellow-500" />}
+          value={statsWithFiles.pending}
+          description={statsWithFiles.pending === 1 ? "1 layout awaiting review" : `${statsWithFiles.pending} layouts awaiting review`}
+          icon={Clock}
+          tooltip="Layouts waiting for approval"
         />
 
         <StatCard
           title="Draft Layouts"
-          value={draftLayouts}
+          value={statsWithFiles.draft}
           description={mostRecentUpdate ? `Last updated ${formatDate(mostRecentUpdate)}` : "No drafts yet"}
-          icon={<AlertCircle className="h-4 w-4 text-blue-500" />}
+          icon={AlertCircle}
+          tooltip="Layouts in draft state"
         />
       </div>
 
+      {/* Layout Type Distribution */}
       {layouts.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
@@ -125,13 +154,22 @@ export default function LayoutStats({ layouts }: LayoutStatsProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {(['claims', 'eligibility', 'wellness'] as const).map(type => {
-                  const count = layouts.filter(l => l.type === type).length;
-                  const percentage = (count / totalLayouts) * 100;
+                {(Object.keys(typeDistribution) as LayoutType[]).map(type => {
+                  const count = typeDistribution[type] || 0;
+                  const percentage = (count / statsWithFiles.total) * 100;
+                  const activeCount = layouts.filter(l => l.type === type && l.status === 'active').length;
+
                   return (
                     <div key={type} className="space-y-1">
                       <div className="flex justify-between text-sm">
-                        <span className="capitalize">{type}</span>
+                        <span className="capitalize flex items-center gap-2">
+                          {type}
+                          {activeCount > 0 && (
+                            <Badge variant="secondary" className="text-xs">
+                              {activeCount} active
+                            </Badge>
+                          )}
+                        </span>
                         <span className="text-muted-foreground">{count}</span>
                       </div>
                       <Progress value={percentage} className="h-2" />
@@ -142,26 +180,25 @@ export default function LayoutStats({ layouts }: LayoutStatsProps) {
             </CardContent>
           </Card>
 
+          {/* Recent Activity */}
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {layouts
-                  .sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime())
+                {activities
+                  .filter(activity => activity.type.toLowerCase().includes('layout'))
                   .slice(0, 3)
-                  .map(layout => (
-                    <div key={layout.id} className="flex items-center justify-between text-sm">
+                  .map(activity => (
+                    <div key={activity.id} className="flex items-center justify-between text-sm">
                       <div>
-                        <p className="font-medium">{layout.name}</p>
-                        <p className="text-muted-foreground">{layout.fields.length} fields configured</p>
+                        <p className="font-medium">{activity.type}</p>
+                        <p className="text-muted-foreground">{activity.details}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-muted-foreground">
-                          {formatDate(new Date(layout.lastModified))}
-                        </p>
-                      </div>
+                      <Badge variant="secondary">
+                        {formatDate(new Date(activity.timestamp))}
+                      </Badge>
                     </div>
                   ))}
               </div>

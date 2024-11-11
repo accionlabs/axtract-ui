@@ -1,19 +1,11 @@
-import React from 'react';
+// src/features/layouts/components/LayoutFormDialog.tsx
+import { useState,useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  DndContext,
-  DragEndEvent,
-  useSensor,
-  useSensors,
-  PointerSensor,
-  DragStartEvent,
-  DragOverlay
-} from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
+import { Layout, LayoutFormValues } from '../types';
+import { useAppState } from '@/context/AppStateContext';
 
-// UI Components
 import {
   Dialog,
   DialogContent,
@@ -44,32 +36,15 @@ import {
   Tabs,
   TabsContent,
   TabsList,
-  TabsTrigger
+  TabsTrigger,
 } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// Import data and types
-import {
-  getLibraryFieldsByType,
-  generateSampleDataForField,
-  FIELD_CATEGORIES
-} from '../mockData';
-import {
-  Layout,
-  LayoutField,
-  LayoutFormValues,
-  LayoutFormField,
-  LayoutType,
-  StandardField
-} from '../types';
+import LayoutFieldConfiguration from './LayoutFieldConfiguration';
 
-import FieldSelector from './FieldSelector';
-import DroppableFieldList from './DroppableFieldList';
-
-// Field Validation Schema
-const validationSchema = z.object({
-  required: z.boolean().optional(),
+// Validation schema for single field
+const fieldValidationSchema = z.object({
   pattern: z.string().optional(),
   minLength: z.number().optional(),
   maxLength: z.number().optional(),
@@ -77,44 +52,29 @@ const validationSchema = z.object({
   max: z.number().optional(),
   precision: z.number().optional(),
   enum: z.array(z.string()).optional()
-}).optional();
+});
 
-// Layout Form Field Schema (matches LayoutFormField)
-const layoutFormFieldSchema = z.object({
+// Validation schema for layout field
+const layoutFieldSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, 'Field name is required'),
-  type: z.enum(['string', 'number', 'date', 'boolean', 'decimal']),
+  type: z.enum(['string', 'number', 'date', 'boolean', 'decimal'] as const),
   description: z.string(),
   required: z.boolean(),
-  category: z.string().optional(),
-  validation: validationSchema,
+  category: z.string(),
+  validation: fieldValidationSchema.optional(),
   customProperties: z.record(z.any()).optional()
 });
 
-
-// Form Schema (matches LayoutFormValues)
+// Main form schema
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
-  type: z.enum(['claims', 'eligibility', 'wellness']),
-  fields: z.array(layoutFormFieldSchema) // Using LayoutFormField schema here, not LayoutField
+  type: z.enum(['claims', 'eligibility', 'wellness'] as const),
+  fields: z.array(layoutFieldSchema)
 });
 
-type FormSchema = z.infer<typeof formSchema>;
-
-
-// Add this helper function at the top with other helpers
-const convertToLayoutField = (formField: z.infer<typeof layoutFormFieldSchema>, order: number): LayoutField => ({
-  id: formField.id || `field-${Date.now()}`,
-  name: formField.name,
-  type: formField.type,
-  description: formField.description,
-  required: formField.required,
-  category: formField.category || 'General',
-  order,
-  validation: formField.validation,
-  customProperties: formField.customProperties || {}
-});
+type FormValues = z.infer<typeof formSchema>;
 
 interface LayoutFormDialogProps {
   open: boolean;
@@ -129,17 +89,15 @@ export default function LayoutFormDialog({
   onSubmit,
   initialData
 }: LayoutFormDialogProps) {
-  const [activeId, setActiveId] = React.useState<string | null>(null);
-  const [activeDragItem, setActiveDragItem] = React.useState<any>(null);
-  const [activeTab, setActiveTab] = React.useState('general');
-  const [hasSelectedType, setHasSelectedType] = React.useState(!!initialData);
+  const { state: { layouts } } = useAppState();
+  const [activeTab, setActiveTab] = useState('general');
 
-  const form = useForm<FormSchema>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: React.useMemo(() => ({
+    defaultValues: {
       name: initialData?.name || '',
       description: initialData?.description || '',
-      type: (initialData?.type as LayoutType) || 'claims',
+      type: initialData?.type || 'claims',
       fields: initialData?.fields.map(field => ({
         id: field.id,
         name: field.name,
@@ -150,451 +108,238 @@ export default function LayoutFormDialog({
         validation: field.validation || {},
         customProperties: field.customProperties || {}
       })) || []
-    }), [initialData]) // Memoize defaultValues based on initialData
+    }
   });
 
-  // Reset form when initialData or open state changes
-  React.useEffect(() => {
+  // Watch form values for validation
+  //const formType = form.watch('type');
+  const formFields = form.watch('fields');
+
+  // Validation function
+  const validateForm = (values: FormValues): boolean => {
+    // Check for duplicate layout names
+    const existingLayout = layouts.find(
+      l => l.name.toLowerCase() === values.name.toLowerCase() && 
+          l.id !== initialData?.id
+    );
+
+    if (existingLayout) {
+      form.setError('name', {
+        type: 'manual',
+        message: 'A layout with this name already exists'
+      });
+      return false;
+    }
+
+    // Check for required fields in claims layouts
+    if (values.type === 'claims' && !values.fields.some(f => f.required)) {
+      form.setError('fields', {
+        type: 'manual',
+        message: 'Claims layouts must have at least one required field'
+      });
+      return false;
+    }
+
+    // Check for minimum fields
+    if (values.fields.length === 0) {
+      form.setError('fields', {
+        type: 'manual',
+        message: 'Layout must have at least one field'
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = (values: FormValues) => {
+    if (!validateForm(values)) return;
+    onSubmit(values);
+  };
+
+  // Reset form when dialog opens/closes
+  useEffect(() => {
     if (open) {
-      // Reset to initial data if provided, otherwise reset to empty form
-      if (initialData) {
-        form.reset({
-          name: initialData.name,
-          description: initialData.description,
-          type: initialData.type as LayoutType,
-          fields: initialData.fields.map(field => ({
-            id: field.id,
-            name: field.name,
-            type: field.type,
-            description: field.description,
-            required: field.required,
-            category: field.category || 'General',
-            validation: field.validation || {},
-            customProperties: field.customProperties || {}
-          }))
-        });
-        setHasSelectedType(true);
-      } else {
-        form.reset({
-          name: '',
-          description: '',
-          type: 'claims',
-          fields: []
-        });
-        setHasSelectedType(false);
-      }
+      form.reset({
+        name: initialData?.name || '',
+        description: initialData?.description || '',
+        type: initialData?.type || 'claims',
+        fields: initialData?.fields.map(field => ({
+          id: field.id,
+          name: field.name,
+          type: field.type,
+          description: field.description,
+          required: field.required,
+          category: field.category || 'General',
+          validation: field.validation || {},
+          customProperties: field.customProperties || {}
+        })) || []
+      });
       setActiveTab('general');
     }
   }, [open, initialData, form.reset]);
 
-  // Clear form and reset states when dialog closes
-  const handleDialogClose = () => {
-    form.reset();
-    setActiveId(null);
-    setActiveDragItem(null);
-    setActiveTab('general');
-    setHasSelectedType(false);
-    onOpenChange(false);
-  };
-
-  // Get available fields based on layout type
-  const availableFields = React.useMemo(() => {
-    const type = form.watch('type') as LayoutType;
-    return getLibraryFieldsByType(type);
-  }, [form.watch('type')]);
-
-  // Get categories for current layout type
-  const layoutCategories = React.useMemo(() => {
-    const type = form.watch('type') as LayoutType;
-    return [...FIELD_CATEGORIES[type]];
-  }, [form.watch('type')]);
-
-  const sampleData = React.useMemo(() => {
-    const formFields = form.watch('fields');
-    return formFields.reduce((acc, field, index) => {
-      // Convert the form field to a layout field before generating sample data
-      const layoutField = convertToLayoutField(field, index);
-      acc[field.name] = generateSampleDataForField(layoutField);
-      return acc;
-    }, {} as Record<string, any>);
-  }, [form.watch('fields')]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    })
-  );
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    setActiveId(active.id as string);
-    setActiveDragItem(active.data?.current?.field);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (!over) return;
-
-    if (active.data?.current?.type === 'FIELD' && over.id === 'droppable-field-list') {
-      const draggedField = active.data.current.field as StandardField;
-      const currentFields = form.getValues('fields');
-
-      const formField: LayoutFormField = {
-        id: `field-${Date.now()}`,
-        name: draggedField.name,
-        type: draggedField.type,
-        description: draggedField.description,
-        required: draggedField.required,
-        category: draggedField.category || 'General',
-        validation: draggedField.validation,
-        customProperties: {}
-      };
-
-      form.setValue('fields', [...currentFields, formField], {
-        shouldValidate: true
-      });
-    }
-
-    if (active.data?.current?.type === 'LAYOUT_FIELD' && over.id !== active.id) {
-      const oldIndex = form.getValues('fields')
-        .findIndex(field => field.id === active.id);
-      const newIndex = form.getValues('fields')
-        .findIndex(field => field.id === over.id);
-
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const newFields = arrayMove(form.getValues('fields'), oldIndex, newIndex);
-        form.setValue('fields', newFields);
-      }
-    }
-
-    setActiveId(null);
-    setActiveDragItem(null);
-  };
-
-  // Add validation before submission
-  const handleFormSubmit = (data: FormSchema) => {
-    // Ensure all fields have required properties
-    const sanitizedFields = data.fields.map((field, index) => ({
-      ...field,
-      id: field.id || `field-${Date.now()}-${index}`,
-      category: field.category || 'General',
-      validation: field.validation || {},
-      customProperties: field.customProperties || {}
-    }));
-
-    const formData: LayoutFormValues = {
-      ...data,
-      fields: sanitizedFields
-    };
-
-    onSubmit(formData);
-    handleDialogClose();
-  };
-
-  // Layout type selection component
-  const TypeSelection = () => (
-    <FormField
-      control={form.control}
-      name="type"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Layout Type</FormLabel>
-          {hasSelectedType ? (
-            <div className="flex items-center space-x-2">
-              <div className="px-3 py-2 border rounded-md bg-muted capitalize">
-                {field.value} Layout
-              </div>
-              {!initialData && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setHasSelectedType(false);
-                    form.setValue('fields', []);
-                  }}
-                >
-                  Change
-                </Button>
-              )}
-            </div>
-          ) : (
-            <Select
-              value={field.value}
-              onValueChange={(value) => {
-                field.onChange(value);
-                setHasSelectedType(true);
-                form.setValue('fields', []);
-              }}
-            >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select layout type" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value="claims">Claims Layout</SelectItem>
-                <SelectItem value="eligibility">Eligibility Layout</SelectItem>
-                <SelectItem value="wellness">Wellness Layout</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  );
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 py-4 border-b">
-          <DialogTitle>{initialData ? 'Edit Layout' : 'Create New Layout'}</DialogTitle>
+          <DialogTitle>
+            {initialData ? 'Edit Layout' : 'Create New Layout'}
+          </DialogTitle>
           <DialogDescription>
             Configure your layout structure and fields.
           </DialogDescription>
         </DialogHeader>
 
-        <DndContext
-          sensors={sensors}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="flex-1 flex overflow-hidden">
-            <div className="flex-1 overflow-y-auto">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="px-6 pt-4 border-b">
-                  <TabsList>
-                    <TabsTrigger value="general">General</TabsTrigger>
-                    <TabsTrigger value="fields">Fields</TabsTrigger>
-                    <TabsTrigger value="preview">Preview</TabsTrigger>
-                  </TabsList>
-                </div>
-
-                <ScrollArea className="h-[calc(100vh-15rem)]">
-                  <div className="p-6">
-                    <Form {...form}>
-                      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-                        <TabsContent value="general" className="mt-0">
-                          <Card className="p-6">
-                            <div className="space-y-4">
-                              <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Layout Name</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="Enter layout name" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                              <TypeSelection />
-
-                              <FormField
-                                control={form.control}
-                                name="description"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Description</FormLabel>
-                                    <FormControl>
-                                      <Textarea
-                                        placeholder="Enter layout description"
-                                        className="min-h-[100px]"
-                                        {...field}
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          </Card>
-                        </TabsContent>
-
-                        <TabsContent value="fields" className="mt-0">
-                          <div className="flex gap-6">
-                            <ScrollArea className="w-80 border rounded-lg">
-                              <FieldSelector
-                                selectedType={form.watch('type')}
-                                categories={layoutCategories}
-                                availableFields={availableFields}
-                              />
-                            </ScrollArea>
-
-                            <Card className="flex-1 p-6">
-                              <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                  <FormLabel className="text-base">Layout Fields</FormLabel>
-                                  <div className="text-sm text-muted-foreground">
-                                    {form.watch('fields').length} fields configured
-                                  </div>
-                                </div>
-
-                                <DroppableFieldList
-                                  fields={form.watch('fields').map((field, index) => convertToLayoutField(field, index))}
-                                  onFieldRemove={(fieldId) => {
-                                    const currentFields = form.getValues('fields')
-                                      .filter(f => f.id !== fieldId)
-                                      .map((field) => ({
-                                        ...field,
-                                        category: field.category || 'General',
-                                        customProperties: field.customProperties || {}
-                                      }));
-                                    form.setValue('fields', currentFields);
-                                  }}
-                                  onFieldUpdate={(fieldId, updates) => {
-                                    const currentFields = form.getValues('fields');
-                                    const fieldIndex = currentFields.findIndex(f => f.id === fieldId);
-                                    if (fieldIndex > -1) {
-                                      const updatedFields = [...currentFields];
-                                      const currentField = updatedFields[fieldIndex];
-                                      updatedFields[fieldIndex] = {
-                                        ...currentField,
-                                        ...updates,
-                                        category: updates.category || currentField.category || 'General',
-                                        customProperties: updates.customProperties || currentField.customProperties || {},
-                                      };
-                                      form.setValue('fields', updatedFields);
-                                    }
-                                  }}
-                                />
-                              </div>
-                            </Card>
-                          </div>
-                        </TabsContent>
-
-                        <TabsContent value="preview" className="mt-0">
-                          <Card className="p-6">
-                            <div className="space-y-6">
-                              {/* Layout Details */}
-                              <div>
-                                <h3 className="text-lg font-medium mb-4">Layout Details</h3>
-                                <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/50">
-                                  <div>
-                                    <p className="text-sm font-medium">Name</p>
-                                    <p className="text-sm text-muted-foreground">{form.watch('name')}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium">Type</p>
-                                    <p className="text-sm text-muted-foreground capitalize">
-                                      {form.watch('type')} Layout
-                                    </p>
-                                  </div>
-                                  <div className="col-span-2">
-                                    <p className="text-sm font-medium">Description</p>
-                                    <p className="text-sm text-muted-foreground">
-                                      {form.watch('description')}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Fields Preview */}
-                              <div>
-                                <h3 className="text-lg font-medium mb-4">Fields Configuration</h3>
-                                <div className="border rounded-lg">
-                                  <table className="w-full border-collapse">
-                                    <thead>
-                                      <tr className="border-b bg-muted/50">
-                                        <th className="text-left p-2 font-medium">Field Name</th>
-                                        <th className="text-left p-2 font-medium">Type</th>
-                                        <th className="text-left p-2 font-medium">Category</th>
-                                        <th className="text-left p-2 font-medium">Required</th>
-                                        <th className="text-left p-2 font-medium">Validation</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {form.watch('fields').map((field) => (
-                                        <tr key={field.id} className="border-b">
-                                          <td className="p-2 font-medium">{field.name}</td>
-                                          <td className="p-2">{field.type}</td>
-                                          <td className="p-2">{field.category}</td>
-                                          <td className="p-2">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium
-                                              ${field.required
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-yellow-100 text-yellow-800'}`}
-                                            >
-                                              {field.required ? 'Required' : 'Optional'}
-                                            </span>
-                                          </td>
-                                          <td className="p-2">
-                                            {field.validation && (
-                                              <div className="text-xs space-y-1">
-                                                {field.validation.pattern && (
-                                                  <div>Pattern: <code className="bg-muted px-1 rounded">{field.validation.pattern}</code></div>
-                                                )}
-                                                {field.validation.minLength && (
-                                                  <div>Min Length: {field.validation.minLength}</div>
-                                                )}
-                                                {field.validation.maxLength && (
-                                                  <div>Max Length: {field.validation.maxLength}</div>
-                                                )}
-                                                {field.validation.enum && (
-                                                  <div>Values: {field.validation.enum.join(', ')}</div>
-                                                )}
-                                              </div>
-                                            )}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-
-                              {/* Sample Data Preview */}
-                              {form.watch('fields').length > 0 && (
-                                <div>
-                                  <h3 className="text-lg font-medium mb-4">Sample Data Preview</h3>
-                                  <div className="border rounded-lg p-4 bg-muted/50">
-                                    <pre className="text-sm whitespace-pre-wrap">
-                                      {JSON.stringify(sampleData, null, 2)}
-                                    </pre>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </Card>
-                        </TabsContent>
-                      </form>
-                    </Form>
-                  </div>
-                </ScrollArea>
-              </Tabs>
-            </div>
-          </div>
-
-          <DragOverlay>
-            {activeId && activeDragItem && (
-              <div className="flex items-center gap-2 p-2 rounded-md border bg-white shadow-lg">
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{activeDragItem.name}</p>
-                  <p className="text-xs text-muted-foreground">{activeDragItem.type}</p>
-                </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="flex-1 flex flex-col">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+              <div className="px-6 border-b">
+                <TabsList>
+                  <TabsTrigger value="general">General</TabsTrigger>
+                  <TabsTrigger value="fields" disabled={!form.getValues('type')}>
+                    Fields
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="preview" 
+                    disabled={!form.getValues('type') || formFields.length === 0}
+                  >
+                    Preview
+                  </TabsTrigger>
+                </TabsList>
               </div>
-            )}
-          </DragOverlay>
-        </DndContext>
 
-        <DialogFooter className="px-6 py-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={form.handleSubmit(handleFormSubmit)}
-            disabled={!form.formState.isValid || form.watch('fields').length === 0}
-          >
-            {initialData ? 'Update Layout' : 'Create Layout'}
-          </Button>
-        </DialogFooter>
+              <ScrollArea className="flex-1">
+                <div className="p-6">
+                  <TabsContent value="general" className="mt-0">
+                    <Card className="p-6">
+                      <div className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Layout Name</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="Enter layout name" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="type"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Layout Type</FormLabel>
+                              <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                disabled={!!initialData}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="claims">Claims Layout</SelectItem>
+                                  <SelectItem value="eligibility">Eligibility Layout</SelectItem>
+                                  <SelectItem value="wellness">Wellness Layout</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Description</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  {...field}
+                                  placeholder="Enter a detailed description of this layout"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="fields" className="mt-0">
+                    <LayoutFieldConfiguration />
+                  </TabsContent>
+
+                  <TabsContent value="preview" className="mt-0">
+                    <Card className="p-6">
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-lg font-medium mb-4">Layout Preview</h3>
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left p-2">Field Name</th>
+                                <th className="text-left p-2">Type</th>
+                                <th className="text-left p-2">Category</th>
+                                <th className="text-left p-2">Required</th>
+                                <th className="text-left p-2">Validation</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {formFields.map((field, index) => (
+                                <tr key={index} className="border-b">
+                                  <td className="p-2">{field.name}</td>
+                                  <td className="p-2">{field.type}</td>
+                                  <td className="p-2">{field.category}</td>
+                                  <td className="p-2">{field.required ? 'Yes' : 'No'}</td>
+                                  <td className="p-2">
+                                    {field.validation && Object.entries(field.validation)
+                                      .filter(([_, value]) => value !== undefined)
+                                      .map(([key, value]) => (
+                                        <div key={key} className="text-sm">
+                                          {key}: {value}
+                                        </div>
+                                      ))
+                                    }
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </Card>
+                  </TabsContent>
+                </div>
+              </ScrollArea>
+            </Tabs>
+
+            <DialogFooter className="p-6 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={!form.formState.isValid || formFields.length === 0}
+              >
+                {initialData ? 'Update Layout' : 'Create Layout'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

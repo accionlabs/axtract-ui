@@ -1,30 +1,36 @@
+// src/features/layouts/LayoutManager.tsx
+
 import React from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Layout, LayoutFormValues, LayoutField, LayoutFormField } from './types';
-import { mockLayouts } from './mockData';
+import { Layout, LayoutFormValues, LayoutStatus } from './types';
 import { useToast } from "@/hooks/use-toast";
+import { useAppState } from '@/context/AppStateContext';
 import LayoutStats from './components/LayoutStats';
 import LayoutList from './components/LayoutList';
 import LayoutFormDialog from './components/LayoutFormDialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-
-// Helper function to convert form field to layout field
-const convertToLayoutField = (field: LayoutFormField, index: number): LayoutField => ({
-  id: field.id || `field-${Date.now()}-${index}`,
-  name: field.name,
-  type: field.type,
-  description: field.description,
-  required: field.required,
-  category: field.category || 'General',
-  validation: field.validation || {},
-  order: index,
-  customProperties: field.customProperties || {}
-});
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from '@/components/ui/alert-dialog';
 
 export default function LayoutManager() {
-  // State management
-  const [layouts, setLayouts] = React.useState<Layout[]>(mockLayouts);
+  // Get state and actions from context
+  const { 
+    state: { layouts }, 
+    addLayout, 
+    updateLayout, 
+    deleteLayout,
+    updateLayoutStatus 
+  } = useAppState();
+
+  // Local UI state
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
   const [selectedLayout, setSelectedLayout] = React.useState<Layout | null>(null);
   const [layoutToDelete, setLayoutToDelete] = React.useState<Layout | null>(null);
@@ -40,10 +46,15 @@ export default function LayoutManager() {
       status: 'draft',
       version: 1,
       lastModified: new Date().toISOString(),
-      fields: values.fields.map(convertToLayoutField)
+      fields: values.fields.map((field, index) => ({
+        ...field,
+        id: field.id || `field-${Date.now()}-${index}`,
+        order: index,
+        customProperties: field.customProperties || {}
+      }))
     };
 
-    setLayouts(prev => [...prev, newLayout]);
+    addLayout(newLayout);
     handleDialogClose();
     toast({
       title: "Layout Created",
@@ -61,14 +72,15 @@ export default function LayoutManager() {
       description: values.description,
       type: values.type,
       lastModified: new Date().toISOString(),
-      fields: values.fields.map(convertToLayoutField)
+      fields: values.fields.map((field, index) => ({
+        ...field,
+        id: field.id || `field-${Date.now()}-${index}`,
+        order: index,
+        customProperties: field.customProperties || {}
+      }))
     };
 
-    setLayouts(prev => 
-      prev.map(layout => 
-        layout.id === selectedLayout.id ? updatedLayout : layout
-      )
-    );
+    updateLayout(updatedLayout);
     handleDialogClose();
     toast({
       title: "Layout Updated",
@@ -76,15 +88,57 @@ export default function LayoutManager() {
     });
   };
 
-  // Handle layout status changes
-  const handleStatusChange = (layoutId: string, newStatus: 'draft' | 'pending' | 'active') => {
-    setLayouts(prev =>
-      prev.map(layout =>
-        layout.id === layoutId
-          ? { ...layout, status: newStatus, lastModified: new Date().toISOString() }
-          : layout
-      )
-    );
+  // Handle layout status changes with validation
+  const handleStatusChange = (layoutId: string, newStatus: LayoutStatus) => {
+    const layout = layouts.find(l => l.id === layoutId);
+    if (!layout) return;
+
+    // Validate status change
+    const canChangeStatus = () => {
+      if (newStatus === 'active') {
+        // Check if layout has required fields
+        const hasRequiredFields = layout.fields.some(field => field.required);
+        if (!hasRequiredFields) {
+          toast({
+            title: "Cannot Activate",
+            description: "Layout must have at least one required field.",
+            variant: "destructive"
+          });
+          return false;
+        }
+
+        // Check if layout has minimum fields
+        if (layout.fields.length === 0) {
+          toast({
+            title: "Cannot Activate",
+            description: "Layout must have at least one field.",
+            variant: "destructive"
+          });
+          return false;
+        }
+      }
+
+      // Check for dependent files if deactivating
+      if (layout.status === 'active' && newStatus !== 'active') {
+        // This check would ideally come from the context
+        const hasActiveFiles = false; // You would check this using the files state
+        if (hasActiveFiles) {
+          toast({
+            title: "Cannot Deactivate",
+            description: "Layout has active files. Deactivate files first.",
+            variant: "destructive"
+          });
+          return false;
+        }
+      }
+
+      return true;
+    };
+
+    if (!canChangeStatus()) return;
+
+    // Update status if validation passes
+    updateLayoutStatus(layoutId, newStatus);
     toast({
       title: "Status Updated",
       description: `Layout status changed to ${newStatus}.`
@@ -93,12 +147,28 @@ export default function LayoutManager() {
 
   // Edit layout
   const handleEditLayout = (layout: Layout) => {
+    if (layout.status === 'active') {
+      toast({
+        title: "Cannot Edit",
+        description: "Active layouts cannot be edited. Deactivate first.",
+        variant: "destructive"
+      });
+      return;
+    }
     setSelectedLayout(layout);
     setIsCreateDialogOpen(true);
   };
 
   // Initiate layout deletion
   const handleDeleteInitiate = (layout: Layout) => {
+    if (layout.status === 'active') {
+      toast({
+        title: "Cannot Delete",
+        description: "Active layouts cannot be deleted. Deactivate first.",
+        variant: "destructive"
+      });
+      return;
+    }
     setLayoutToDelete(layout);
   };
 
@@ -106,7 +176,18 @@ export default function LayoutManager() {
   const handleDeleteConfirm = () => {
     if (!layoutToDelete) return;
 
-    setLayouts(prev => prev.filter(l => l.id !== layoutToDelete.id));
+    // Check for dependencies before deletion
+    const hasFiles = false; // You would check this using the files state
+    if (hasFiles) {
+      toast({
+        title: "Cannot Delete",
+        description: "Layout has associated files. Remove files first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    deleteLayout(layoutToDelete.id);
     setLayoutToDelete(null);
     toast({
       title: "Layout Deleted",
@@ -150,7 +231,10 @@ export default function LayoutManager() {
         initialData={selectedLayout}
       />
 
-      <AlertDialog open={!!layoutToDelete} onOpenChange={(open) => !open && setLayoutToDelete(null)}>
+      <AlertDialog 
+        open={!!layoutToDelete} 
+        onOpenChange={(open) => !open && setLayoutToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Layout</AlertDialogTitle>
@@ -160,7 +244,10 @@ export default function LayoutManager() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
