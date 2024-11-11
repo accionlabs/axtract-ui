@@ -271,7 +271,7 @@ export default function Dashboard() {
             <CardDescription>Latest system events and changes</CardDescription>
           </CardHeader>
           <CardContent>
-            <RecentActivity activities={activities.slice(0, 10)} />
+            <RecentActivity activities={activities.slice(0, 10)} showHeader={false}/>
           </CardContent>
         </Card>
       </div>
