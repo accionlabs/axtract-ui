@@ -23,48 +23,41 @@ import {
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 
-import { BasicConfigTab, DeliveryConfigTab, ScheduleConfigTab } from './tabs';
+import { BasicConfigTab, DeliveryConfigTab, ScheduleConfigTab, NotificationsTab } from './tabs';
 
 // Form validation schemas
-const sftpConfigSchema = z.object({
-    host: z.string().min(1, 'Host is required'),
-    port: z.number().min(1).max(65535),
-    username: z.string().min(1, 'Username is required'),
-    path: z.string().min(1, 'Path is required'),
-    knownHostKey: z.string().optional()
-});
-
-const scheduleConfigSchema = z.object({
-    frequency: z.enum(['daily', 'weekly', 'monthly']),
-    time: z.string(),
-    timezone: z.string(),
-    daysOfWeek: z.array(z.number()).optional(),
-    daysOfMonth: z.array(z.number()).optional()
-}).refine(data => {
-    if (data.frequency === 'weekly' && (!data.daysOfWeek || data.daysOfWeek.length === 0)) {
-        return false;
-    }
-    if (data.frequency === 'monthly' && (!data.daysOfMonth || data.daysOfMonth.length === 0)) {
-        return false;
-    }
-    return true;
-}, {
-    message: "Please select days for the schedule"
-});
-
-const encryptionConfigSchema = z.object({
-    enabled: z.boolean(),
-    type: z.literal('PGP'),
-    publicKey: z.string().optional()
-});
-
 const fileFormSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     layoutId: z.string().min(1, 'Layout is required'),
     format: z.enum(['CSV', 'TSV', 'FIXED']),
-    sftpConfig: sftpConfigSchema.optional(),
-    scheduleConfig: scheduleConfigSchema.optional(),
-    encryptionConfig: encryptionConfigSchema.optional()
+    sftpConfig: z.object({
+        host: z.string().min(1, 'Host is required'),
+        port: z.number().min(1).max(65535),
+        username: z.string().min(1, 'Username is required'),
+        path: z.string().min(1, 'Path is required'),
+        knownHostKey: z.string().optional()
+    }).optional(),
+    scheduleConfig: z.object({
+        frequency: z.enum(['daily', 'weekly', 'monthly']),
+        time: z.string(),
+        timezone: z.string(),
+        daysOfWeek: z.array(z.number()).optional(),
+        daysOfMonth: z.array(z.number()).optional()
+    }).optional(),
+    encryptionConfig: z.object({
+        enabled: z.boolean(),
+        type: z.literal('PGP'),
+        publicKey: z.string().optional()
+    }).optional(),
+    notificationConfig: z.object({
+        notifyOnSuccess: z.boolean(),
+        notifyOnFailure: z.boolean(),
+        notificationEmails: z.array(z.string().email()),
+        retryConfig: z.object({
+            maxAttempts: z.number().min(1).max(10),
+            delayMinutes: z.number().min(1).max(60)
+        }).optional()
+    }).optional()
 });
 
 export type FormSchema = z.infer<typeof fileFormSchema>;
@@ -87,6 +80,7 @@ export default function FileFormDialog({
     const [showSftp, setShowSftp] = React.useState(false);
     const [showSchedule, setShowSchedule] = React.useState(false);
     const [showEncryption, setShowEncryption] = React.useState(false);
+    const [showNotifications, setShowNotifications] = React.useState(false);
 
     // Initialize form with react-hook-form
     const form = useForm<FormSchema>({
@@ -100,6 +94,15 @@ export default function FileFormDialog({
             encryptionConfig: initialData?.encryptionConfig || {
                 enabled: false,
                 type: 'PGP'
+            },
+            notificationConfig: initialData?.notificationConfig || {
+                notifyOnSuccess: false,
+                notifyOnFailure: true,
+                notificationEmails: [],
+                retryConfig: {
+                    maxAttempts: 3,
+                    delayMinutes: 15
+                }
             }
         }
     });
@@ -116,11 +119,13 @@ export default function FileFormDialog({
                 encryptionConfig: initialData?.encryptionConfig || {
                     enabled: false,
                     type: 'PGP'
-                }
+                },
+                notificationConfig: initialData?.notificationConfig
             });
             setShowSftp(!!initialData?.sftpConfig);
             setShowSchedule(!!initialData?.scheduleConfig);
             setShowEncryption(!!initialData?.encryptionConfig?.enabled);
+            setShowNotifications(!!initialData?.notificationConfig);
             setActiveTab('basic');
         }
     }, [open, initialData, form.reset]);
@@ -135,7 +140,8 @@ export default function FileFormDialog({
                 ...data.encryptionConfig,
                 enabled: true,
                 type: 'PGP'
-            } : undefined
+            } : undefined,
+            notificationConfig: showNotifications ? data.notificationConfig : undefined
         };
         onSubmit(fileData);
     };
@@ -148,7 +154,7 @@ export default function FileFormDialog({
                         {initialData ? 'Edit File Configuration' : 'Create New File'}
                     </DialogTitle>
                     <DialogDescription>
-                        Configure your file format, delivery, and schedule settings.
+                        Configure your file format, delivery, schedule, and notification settings.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -159,6 +165,7 @@ export default function FileFormDialog({
                                 <TabsTrigger value="basic">Basic</TabsTrigger>
                                 <TabsTrigger value="delivery">Delivery</TabsTrigger>
                                 <TabsTrigger value="schedule">Schedule</TabsTrigger>
+                                <TabsTrigger value="notifications">Notifications</TabsTrigger>
                             </TabsList>
 
                             <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -181,6 +188,14 @@ export default function FileFormDialog({
                                         form={form}
                                         showSchedule={showSchedule}
                                         setShowSchedule={setShowSchedule}
+                                    />
+                                </TabsContent>
+
+                                <TabsContent value="notifications" className="mt-0">
+                                    <NotificationsTab
+                                        form={form}
+                                        showNotifications={showNotifications}
+                                        setShowNotifications={setShowNotifications}
                                     />
                                 </TabsContent>
                             </div>

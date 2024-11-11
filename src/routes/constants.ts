@@ -2,7 +2,7 @@ export const ROUTES = {
     DASHBOARD: '/',
     LAYOUT_MANAGER: '/layouts',
     FILE_MANAGER: '/files',
-    SCHEDULE_MANAGER: '/schedules',
+    MONITORING: '/monitoring',
   } as const;
   
   // Helper function to get full path with base URL

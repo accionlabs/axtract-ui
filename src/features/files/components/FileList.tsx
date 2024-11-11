@@ -26,7 +26,19 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, MoreHorizontal, FileText, Send, Calendar, Table2 } from 'lucide-react';
+import { 
+  Edit, 
+  Trash2, 
+  MoreHorizontal, 
+  FileText, 
+  Send, 
+  Calendar, 
+  Table2, 
+  Bell,
+  AlertTriangle,
+  CheckCircle2,
+  BellOff
+} from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 export interface FileListProps {
@@ -94,6 +106,18 @@ export default function FileList({
     return `${scheduleText} (${timezone})`;
   };
 
+  const getNotificationInfo = (file: FileConfiguration) => {
+    if (!file.notificationConfig) return null;
+
+    const { notifyOnSuccess, notifyOnFailure, notificationEmails, retryConfig } = file.notificationConfig;
+    return {
+      success: notifyOnSuccess,
+      failure: notifyOnFailure,
+      emails: notificationEmails,
+      retries: retryConfig ? `${retryConfig.maxAttempts} attempts, ${retryConfig.delayMinutes}m delay` : null
+    };
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -108,6 +132,7 @@ export default function FileList({
               <TableHead>Format</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Configuration</TableHead>
+              <TableHead>Notifications</TableHead>
               <TableHead>Last Updated</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -117,6 +142,7 @@ export default function FileList({
               const layout = getLayoutInfo(file.layoutId);
               const layoutActive = layout?.status === 'active';
               const scheduleInfo = getScheduleInfo(file);
+              const notificationInfo = getNotificationInfo(file);
 
               return (
                 <TableRow key={file.id}>
@@ -208,7 +234,58 @@ export default function FileList({
                           </Tooltip>
                         </TooltipProvider>
                       )}
+                      {file.encryptionConfig?.enabled && (
+                        <Badge variant="outline" className="gap-1 w-fit">
+                          <span className="h-3 w-3">🔒</span>
+                          PGP
+                        </Badge>
+                      )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {notificationInfo ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-2">
+                              <Bell className="h-4 w-4 text-muted-foreground" />
+                              <div className="flex gap-1">
+                                {notificationInfo.success && (
+                                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                )}
+                                {notificationInfo.failure && (
+                                  <AlertTriangle className="h-3 w-3 text-amber-500" />
+                                )}
+                              </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="space-y-2">
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium">Notifications</p>
+                                <p className="text-xs">
+                                  Success: {notificationInfo.success ? 'Enabled' : 'Disabled'}
+                                </p>
+                                <p className="text-xs">
+                                  Failure: {notificationInfo.failure ? 'Enabled' : 'Disabled'}
+                                </p>
+                                {notificationInfo.retries && (
+                                  <p className="text-xs">Retries: {notificationInfo.retries}</p>
+                                )}
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium">Recipients</p>
+                                {notificationInfo.emails.map(email => (
+                                  <p key={email} className="text-xs">{email}</p>
+                                ))}
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <BellOff className="h-4 w-4 text-muted-foreground" />
+                    )}
                   </TableCell>
                   <TableCell>
                     <TooltipProvider>
@@ -236,7 +313,6 @@ export default function FileList({
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
 
-                        {/* Only show status change options relevant to current status */}
                         {file.status === 'draft' && (
                           <DropdownMenuItem
                             onClick={() => onStatusChange(file.id, 'active')}

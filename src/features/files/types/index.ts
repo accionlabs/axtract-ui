@@ -3,6 +3,16 @@
 export type FileFormat = 'CSV' | 'TSV' | 'FIXED';
 export type FileStatus = 'draft' | 'active' | 'inactive';
 
+export interface NotificationConfig {
+  notifyOnSuccess: boolean;
+  notifyOnFailure: boolean;
+  notificationEmails: string[];
+  retryConfig?: {
+    maxAttempts: number;
+    delayMinutes: number;
+  };
+}
+
 export interface SFTPConfiguration {
   host: string;
   port: number;
@@ -36,6 +46,7 @@ export interface FileConfiguration {
   sftpConfig?: SFTPConfiguration;
   scheduleConfig?: ScheduleConfiguration;
   encryptionConfig?: EncryptionConfiguration;
+  notificationConfig?: NotificationConfig;
 }
 
 export interface FileFormValues {
@@ -45,6 +56,7 @@ export interface FileFormValues {
   sftpConfig?: SFTPConfiguration;
   scheduleConfig?: ScheduleConfiguration;
   encryptionConfig?: EncryptionConfiguration;
+  notificationConfig?: NotificationConfig;
 }
 
 export interface FileListProps {

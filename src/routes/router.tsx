@@ -4,7 +4,7 @@ import MainLayout from '@/components/shared/MainLayout';
 import Dashboard from '@/features/dashboard/Dashboard';
 import LayoutManager from '@/features/layouts/LayoutManager';
 import FileManager from '@/features/files/FileManager';
-import ScheduleManager from '@/features/schedules/ScheduleManager';
+import { Monitoring } from '@/features/monitoring/Monitoring';
 
 // Get the base URL from Vite's env
 const baseUrl = import.meta.env.BASE_URL;
@@ -28,8 +28,8 @@ export const router = createBrowserRouter(
           element: <FileManager />,
         },
         {
-          path: ROUTES.SCHEDULE_MANAGER.replace('/', ''),
-          element: <ScheduleManager />,
+          path: ROUTES.MONITORING.replace('/', ''),
+          element: <Monitoring />,
         },
       ],
     },

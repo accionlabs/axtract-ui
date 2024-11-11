@@ -2,3 +2,4 @@
 export { BasicConfigTab } from './BasicConfigTab';
 export { DeliveryConfigTab } from './DeliveryConfigTab';
 export { ScheduleConfigTab } from './ScheduleConfigTab';
+export { NotificationsTab } from './NotificationsTab';

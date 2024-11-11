@@ -28,9 +28,9 @@ const MainLayout = () => {
       route: ROUTES.FILE_MANAGER,
     },
     {
-      label: 'Schedules',
+      label: 'Monitoring',
       icon: Calendar,
-      route: ROUTES.SCHEDULE_MANAGER,
+      route: ROUTES.MONITORING,
     },
   ];
 
