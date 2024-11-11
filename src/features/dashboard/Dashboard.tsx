@@ -36,7 +36,7 @@ export default function Dashboard() {
       value: 3,
       subtitle: '2 pending, 1 processing',
       icon: Activity,
-      route: ROUTES.SCHEDULE_MANAGER,
+      route: ROUTES.MONITORING,
       className: 'cursor-pointer hover:shadow-lg transition-shadow'
     }
   ];

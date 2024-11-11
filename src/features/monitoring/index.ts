@@ -1,3 +1,3 @@
 // src/features/schedules/index.ts
-export { default as ScheduleManager } from './ScheduleManager';
+export { Monitoring } from './Monitoring';
 export * from './components';
