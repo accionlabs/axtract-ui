@@ -1,5 +1,5 @@
 // src/features/dashboard/components/ActivityItem.tsx
-import { Activity } from '../../../types';
+import { Activity } from '../types';
 import StatusIndicator from './StatusIndicator';
 
 interface ActivityItemProps {

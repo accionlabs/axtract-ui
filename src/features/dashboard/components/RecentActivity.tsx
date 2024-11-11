@@ -1,5 +1,5 @@
 // src/features/dashboard/components/RecentActivity.tsx
-import { Activity } from '../../../types';
+import { Activity } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ActivityItem from './ActivityItem';
 

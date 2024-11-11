@@ -1,8 +1,9 @@
 // src/features/dashboard/components/StatusIndicator.tsx
-import { Activity } from '../../../types';
+
+import { ActivityStatus } from '../types';
 
 interface StatusIndicatorProps {
-  status: Activity['status'];
+  status: ActivityStatus;
 }
 
 const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status }) => {

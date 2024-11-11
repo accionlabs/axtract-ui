@@ -1,40 +1,44 @@
+// src/features/dashboard/Dashboard.tsx
+
 import { BarChart, PieChart, Activity, FileText } from 'lucide-react';
-import { recentActivity } from '@/data/mockData';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/routes/constants';
 import StatCard from './components/StatCard';
 import RecentActivity from './components/RecentActivity';
+import { useDashboardStats } from '@/context/AppStateContext';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  // Use all the data from our hook, including recentActivity
+  const { layouts, files, monitoring, recentActivity } = useDashboardStats();
 
   const stats = [
     {
       title: 'Active Layouts',
-      value: 12,
-      subtitle: '2 pending approval',
+      value: layouts.active,
+      subtitle: `${layouts.pending} pending approval`,
       icon: FileText,
       route: ROUTES.LAYOUT_MANAGER,
       className: 'cursor-pointer hover:shadow-lg transition-shadow'
     },
     {
       title: 'Scheduled Files',
-      value: 24,
-      subtitle: '8 running today',
+      value: files.scheduled,
+      subtitle: `${files.runningToday} running today`,
       icon: BarChart,
       route: ROUTES.FILE_MANAGER,
       className: 'cursor-pointer hover:shadow-lg transition-shadow'
     },
     {
       title: 'Success Rate',
-      value: '98.2%',
+      value: `${monitoring.successRate}%`,
       subtitle: 'Last 7 days',
       icon: PieChart
     },
     {
       title: 'Active Tasks',
-      value: 3,
-      subtitle: '2 pending, 1 processing',
+      value: monitoring.activeProcesses,
+      subtitle: `${monitoring.pendingProcesses} pending, ${monitoring.failedProcesses} failed`,
       icon: Activity,
       route: ROUTES.MONITORING,
       className: 'cursor-pointer hover:shadow-lg transition-shadow'
@@ -63,6 +67,7 @@ export default function Dashboard() {
       </div>
 
       <div className="mb-8">
+        {/* Pass the recentActivity data to the RecentActivity component */}
         <RecentActivity activities={recentActivity} />
       </div>
     </div>
