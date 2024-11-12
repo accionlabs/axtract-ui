@@ -254,10 +254,16 @@ export const getLibraryFieldsByType = (type: LayoutType) => {
   }
 };
 
+export const LAYOUT_IDS = {
+  CLAIMS: 'layout-claims-standard',
+  ELIGIBILITY: 'layout-elig-basic',
+  WELLNESS: 'layout-wellness-basic'
+} as const;
+
 // Mock Layouts
 export const mockLayouts: Layout[] = [
   {
-    id: generateId(),
+    id: LAYOUT_IDS.CLAIMS,
     name: 'Standard Claims Extract',
     description: 'Standard claims extract including payment and procedure information',
     type: 'claims',
@@ -266,13 +272,13 @@ export const mockLayouts: Layout[] = [
     lastModified: '2024-01-15T08:00:00Z',
     fields: claimsLibraryFields.map((field, index) => ({
       ...field,
-      id: generateId(),
-      order: index, // Add order property
-      customProperties: {} // Add customProperties if required by LayoutField type
+      id: `${LAYOUT_IDS.CLAIMS}-field-${index}`,
+      order: index,
+      customProperties: {}
     })) as LayoutField[]
   },
   {
-    id: generateId(),
+    id: LAYOUT_IDS.ELIGIBILITY,
     name: 'Basic Eligibility Extract',
     description: 'Basic member eligibility information extract',
     type: 'eligibility',
@@ -281,13 +287,13 @@ export const mockLayouts: Layout[] = [
     lastModified: '2024-01-10T14:15:00Z',
     fields: eligibilityLibraryFields.map((field, index) => ({
       ...field,
-      id: generateId(),
+      id: `${LAYOUT_IDS.ELIGIBILITY}-field-${index}`,
       order: index,
       customProperties: {}
     })) as LayoutField[]
   },
   {
-    id: generateId(),
+    id: LAYOUT_IDS.WELLNESS,
     name: 'Wellness Program Extract',
     description: 'Wellness program participation and activity tracking',
     type: 'wellness',
@@ -296,7 +302,7 @@ export const mockLayouts: Layout[] = [
     lastModified: '2024-02-20T10:30:00Z',
     fields: wellnessLibraryFields.map((field, index) => ({
       ...field,
-      id: generateId(),
+      id: `${LAYOUT_IDS.WELLNESS}-field-${index}`,
       order: index,
       customProperties: {}
     })) as LayoutField[]

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DragHandleDots2Icon } from '@radix-ui/react-icons';
 import { useDraggable } from '@dnd-kit/core';
-import { StandardField, LayoutType, LayoutField } from '@/features/layouts/types';
+import { StandardField, LayoutType } from '../types';
 import {
   Accordion,
   AccordionContent,
@@ -33,13 +33,7 @@ import {
 import { generateSampleDataForField } from '../mockData';
 import { cn } from "@/lib/utils";
 
-// Add a helper function to convert StandardField to LayoutField
-const convertToLayoutField = (field: StandardField): LayoutField => ({
-  ...field,
-  order: 0, // Default order, will be updated when field is dropped
-  customProperties: {}
-});
-
+// Component for individual draggable field
 interface DraggableFieldItemProps {
   field: StandardField;
   sampleData?: any;
@@ -50,7 +44,11 @@ const DraggableFieldItem = ({ field, sampleData }: DraggableFieldItemProps) => {
     id: `draggable-${field.id}`,
     data: {
       type: 'FIELD',
-      field: convertToLayoutField(field),
+      field: {
+        ...field,
+        order: 0, // Default order, will be updated when dropped
+        customProperties: {}
+      },
     },
   });
 
@@ -104,7 +102,10 @@ const DraggableFieldItem = ({ field, sampleData }: DraggableFieldItemProps) => {
               <div className="space-y-1">
                 <p className="text-sm font-medium">Sample Data</p>
                 <code className="text-xs bg-muted p-1 rounded">
-                  {JSON.stringify(sampleData)}
+                  {typeof sampleData === 'object' 
+                    ? JSON.stringify(sampleData) 
+                    : String(sampleData)
+                  }
                 </code>
               </div>
             )}
@@ -115,19 +116,22 @@ const DraggableFieldItem = ({ field, sampleData }: DraggableFieldItemProps) => {
   );
 };
 
+// Filter options type
+type FilterOption = 'all' | 'required' | 'optional';
+
+// Main FieldSelector component props
 export interface FieldSelectorProps {
   selectedType: LayoutType;
   categories: string[];
   availableFields: StandardField[];
 }
 
-type FilterOption = 'all' | 'required' | 'optional';
-
 export default function FieldSelector({ 
   selectedType, 
   categories,
   availableFields
 }: FieldSelectorProps) {
+  // Local state for filters
   const [searchQuery, setSearchQuery] = useState('');
   const [filterOption, setFilterOption] = useState<FilterOption>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -165,7 +169,11 @@ export default function FieldSelector({
 
   // Generate sample data for fields
   const sampleData = availableFields.reduce((acc, field) => {
-    acc[field.id] = generateSampleDataForField(convertToLayoutField(field));
+    acc[field.id] = generateSampleDataForField({
+      ...field,
+      order: 0,
+      customProperties: {}
+    });
     return acc;
   }, {} as Record<string, any>);
 
@@ -189,7 +197,7 @@ export default function FieldSelector({
           />
 
           <div className="flex gap-2">
-            <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value)}>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger className="h-8">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
@@ -202,7 +210,10 @@ export default function FieldSelector({
               </SelectContent>
             </Select>
 
-            <Select value={filterOption} onValueChange={(value: FilterOption) => setFilterOption(value)}>
+            <Select 
+              value={filterOption} 
+              onValueChange={(value: FilterOption) => setFilterOption(value)}
+            >
               <SelectTrigger className="h-8">
                 <SelectValue placeholder="Filter fields" />
               </SelectTrigger>

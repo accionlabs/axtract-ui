@@ -1,6 +1,7 @@
 // src/features/files/mockData.ts
 
 import { FileConfiguration } from './types';
+import { LAYOUT_IDS } from '../layouts/mockData';
 
 // Helper to generate dates
 const getPastDate = (days: number) => {
@@ -14,7 +15,7 @@ export const mockFiles: FileConfiguration[] = [
   {
     id: 'file-1',
     name: 'Claims Data Extract',
-    layoutId: 'layout-1',
+    layoutId: LAYOUT_IDS.CLAIMS,
     format: 'CSV',
     status: 'active',
     createdAt: getPastDate(30),
@@ -46,7 +47,7 @@ export const mockFiles: FileConfiguration[] = [
   {
     id: 'file-2',
     name: 'Provider Summary Report',
-    layoutId: 'layout-2',
+    layoutId: LAYOUT_IDS.ELIGIBILITY,
     format: 'TSV',
     status: 'active',
     createdAt: getPastDate(60),
@@ -82,7 +83,7 @@ export const mockFiles: FileConfiguration[] = [
   {
     id: 'file-3',
     name: 'Monthly Financial Report',
-    layoutId: 'layout-3',
+    layoutId: LAYOUT_IDS.CLAIMS,
     format: 'FIXED',
     status: 'inactive',
     createdAt: getPastDate(90),
@@ -106,7 +107,7 @@ export const mockFiles: FileConfiguration[] = [
   {
     id: 'file-4',
     name: 'Member Updates',
-    layoutId: 'layout-4',
+    layoutId: LAYOUT_IDS.ELIGIBILITY,
     format: 'CSV',
     status: 'draft',
     createdAt: getPastDate(5),
@@ -124,7 +125,7 @@ export const mockFiles: FileConfiguration[] = [
   {
     id: 'file-5',
     name: 'Wellness Program Extract',
-    layoutId: 'layout-5',
+    layoutId: LAYOUT_IDS.WELLNESS,
     format: 'CSV',
     status: 'active',
     createdAt: getPastDate(45),
