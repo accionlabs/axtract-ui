@@ -73,7 +73,7 @@ export default function FileFormDialog({
     open,
     onOpenChange,
     onSubmit,
-    initialData
+    initialData,
 }: FileFormDialogProps) {
     // State for active tab and feature toggles
     const [activeTab, setActiveTab] = React.useState('basic');
@@ -170,7 +170,9 @@ export default function FileFormDialog({
 
                             <div className="flex-1 overflow-y-auto px-6 py-4">
                                 <TabsContent value="basic" className="mt-0">
-                                    <BasicConfigTab form={form} />
+                                    <BasicConfigTab 
+                                        form={form} 
+                                    />
                                 </TabsContent>
 
                                 <TabsContent value="delivery" className="mt-0">
