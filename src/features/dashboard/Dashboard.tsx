@@ -53,7 +53,8 @@ export default function Dashboard() {
   const fileStats = {
     total: files.length,
     active: files.filter(f => f.status === 'active').length,
-    scheduled: files.filter(f => f.scheduleConfig).length,
+    draft: files.filter(f => f.status === 'draft').length,
+    inactive: files.filter(f => f.status === 'inactive').length,
     runningToday: files.filter(f => {
       if (!f.scheduleConfig || f.status !== 'active') return false;
       const now = new Date();
@@ -108,7 +109,7 @@ export default function Dashboard() {
     {
       title: 'Layouts',
       value: layoutStats.total,
-      subtitle: `${layoutStats.active} active, ${layoutStats.pending} pending`,
+      subtitle: `${layoutStats.active} active, ${layoutStats.pending} pending, ${layoutStats.draft} draft`,
       description: `Average ${layoutStats.avgFields} fields per layout`,
       icon: FileText,
       onClick: () => navigate(ROUTES.LAYOUT_MANAGER),
@@ -120,8 +121,8 @@ export default function Dashboard() {
     },
     {
       title: 'Files',
-      value: fileStats.active,
-      subtitle: `${fileStats.scheduled} scheduled`,
+      value: fileStats.total,
+      subtitle: `${fileStats.active} active, ${fileStats.inactive} inactive, ${fileStats.draft} draft`,
       description: `${fileStats.runningToday} running today`,
       icon: BarChart,
       onClick: () => navigate(ROUTES.FILE_MANAGER),
@@ -129,19 +130,6 @@ export default function Dashboard() {
         value: (fileStats.active / Math.max(fileStats.total, 1)) * 100,
         label: 'active rate',
         status: fileStats.active > 0 ? 'positive' : 'negative'
-      }
-    },
-    {
-      title: 'Success Rate',
-      value: `${processStats.successRate}%`,
-      subtitle: 'Last 24 hours',
-      description: `${processStats.completed} completed, ${processStats.failed} failed`,
-      icon: PieChart,
-      progress: processStats.successRate,
-      trend: {
-        value: processStats.successRate,
-        label: 'success rate',
-        status: processStats.successRate >= 80 ? 'positive' : 'negative'
       }
     },
     {
@@ -155,6 +143,19 @@ export default function Dashboard() {
         value: trend.value,
         label: trend.direction === 'up' ? 'improvement' : 'decline',
         status: trend.direction === 'up' ? 'positive' : 'negative'
+      }
+    },
+    {
+      title: 'Success Rate',
+      value: `${processStats.successRate}%`,
+      subtitle: 'Last 24 hours',
+      description: `${processStats.completed} completed, ${processStats.failed} failed`,
+      icon: PieChart,
+      progress: processStats.successRate,
+      trend: {
+        value: processStats.successRate,
+        label: 'success rate',
+        status: processStats.successRate >= 80 ? 'positive' : 'negative'
       }
     }
   ];

@@ -83,8 +83,8 @@ export const mockMonitoringData: FileProcessingDetails[] = [
     retryCount: 5,
     maxRetries: 5,
     errorDetails: [{
-      code: 'DB_CONN_ERROR',
-      message: 'Database connection timeout',
+      code: 'SFTP_CONN_ERROR',
+      message: 'SFTP connection timeout',
       timestamp: getRecentDate(47)
     }]
   },
