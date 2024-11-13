@@ -361,40 +361,44 @@ export default function LayoutFormDialog({
     >
       <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 py-4 border-b">
-          <DialogTitle>{initialData ? 'Edit Layout' : 'Create New Layout'}</DialogTitle>
+          <DialogTitle>
+            {initialData ? 'Edit Layout' : 'Create New Layout'}
+          </DialogTitle>
           <DialogDescription>
             Configure your layout structure and fields.
           </DialogDescription>
         </DialogHeader>
-
+  
         <DndContext
           sensors={sensors}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex-1 flex overflow-hidden">
-            <div className="flex-1 overflow-y-auto">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="h-full">
-                  <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-                    <div className="px-6 pt-4 border-b">
-                      <TabsList>
-                        <TabsTrigger value="general">General</TabsTrigger>
-                        <TabsTrigger value="fields" disabled={!hasSelectedType}>
-                          Fields
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="preview"
-                          disabled={!hasSelectedType || form.getValues('fields').length === 0}
-                        >
-                          Preview
-                        </TabsTrigger>
-                      </TabsList>
-                    </div>
-
-                    <div className="flex-1 overflow-hidden">
-                      <TabsContent value="general" className="h-full">
-                        <ScrollArea className="h-full px-6 py-4">
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="flex-1 flex flex-col overflow-hidden">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+                  {/* Fixed tabs header */}
+                  <div className="px-6 pt-4 border-b bg-background">
+                    <TabsList>
+                      <TabsTrigger value="general">General</TabsTrigger>
+                      <TabsTrigger value="fields" disabled={!hasSelectedType}>
+                        Fields
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="preview"
+                        disabled={!hasSelectedType || form.getValues('fields').length === 0}
+                      >
+                        Preview
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+  
+                  {/* Scrollable content area */}
+                  <div className="flex-1 overflow-hidden">
+                    <ScrollArea className="h-full">
+                      <TabsContent value="general" className="mt-0">
+                        <div className="px-6 py-4">
                           <div className="space-y-4 max-w-2xl">
                             <FormField
                               control={form.control}
@@ -409,7 +413,7 @@ export default function LayoutFormDialog({
                                 </FormItem>
                               )}
                             />
-
+  
                             <FormField
                               control={form.control}
                               name="type"
@@ -443,7 +447,7 @@ export default function LayoutFormDialog({
                                 </FormItem>
                               )}
                             />
-
+  
                             <FormField
                               control={form.control}
                               name="description"
@@ -462,10 +466,10 @@ export default function LayoutFormDialog({
                               )}
                             />
                           </div>
-                        </ScrollArea>
+                        </div>
                       </TabsContent>
-
-                      <TabsContent value="fields" className="h-full">
+  
+                      <TabsContent value="fields" className="mt-0">
                         <div className="h-full flex gap-6 p-6">
                           <div className="w-80 border rounded-lg">
                             <FieldSelector
@@ -474,7 +478,6 @@ export default function LayoutFormDialog({
                               availableFields={availableFields}
                             />
                           </div>
-
                           <div className="flex-1">
                             <DroppableFieldList
                               fields={formFields}
@@ -483,7 +486,7 @@ export default function LayoutFormDialog({
                                   .filter(f => f.id !== fieldId)
                                   .map((field, index) => ({
                                     ...field,
-                                    order: index  // Reorder remaining fields
+                                    order: index
                                   }));
                                 form.setValue('fields', currentFields);
                               }}
@@ -492,46 +495,48 @@ export default function LayoutFormDialog({
                           </div>
                         </div>
                       </TabsContent>
-
-                      <TabsContent value="preview" className="mt-0 h-full">
-                        <LayoutPreview
-                          name={form.watch('name')}
-                          description={form.watch('description')}
-                          type={form.watch('type')}
-                          status={initialData?.status}
-                          fields={formFields}
-                        />
+  
+                      <TabsContent value="preview" className="mt-0">
+                        <div className="p-6">
+                          <LayoutPreview
+                            name={form.watch('name')}
+                            description={form.watch('description')}
+                            type={form.watch('type')}
+                            status={initialData?.status}
+                            fields={formFields}
+                          />
+                        </div>
                       </TabsContent>
-                    </div>
-                  </Tabs>
-                </form>
-              </Form>
-            </div>
+                    </ScrollArea>
+                  </div>
+                </Tabs>
+  
+                <DialogFooter className="px-6 py-4 border-t mt-auto bg-background">
+                  <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={!isFormValid}
+                  >
+                    {initialData ? 'Update Layout' : 'Create Layout'}
+                  </Button>
+  
+                  {/* Add error feedback if needed */}
+                  {Object.keys(errors).length > 0 && (
+                    <p className="text-sm text-red-500 mt-2">
+                      Please fill in all required fields correctly
+                    </p>
+                  )}
+                </DialogFooter>
+              </form>
+            </Form>
           </div>
-
+  
           <DragOverlay>
             {getDragOverlayContent()}
           </DragOverlay>
         </DndContext>
-
-        <DialogFooter className="px-6 py-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={form.handleSubmit(handleSubmit)}
-            disabled={!isFormValid}
-          >
-            {initialData ? 'Update Layout' : 'Create Layout'}
-          </Button>
-
-          {/* Add error feedback if needed */}
-          {Object.keys(errors).length > 0 && (
-            <p className="text-sm text-red-500 mt-2">
-              Please fill in all required fields correctly
-            </p>
-          )}
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
