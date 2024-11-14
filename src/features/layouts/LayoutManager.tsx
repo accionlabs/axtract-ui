@@ -256,7 +256,7 @@ export default function LayoutManager() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <div className="space-y-1">
+        <div className="space-y-1 layout-manager-header">
           <h1 className="text-2xl font-bold">Layout Manager</h1>
           <p className="text-sm text-muted-foreground">
             Configure and manage data extract layouts
@@ -264,7 +264,7 @@ export default function LayoutManager() {
         </div>
         <Button 
           onClick={() => setIsCreateDialogOpen(true)}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 create-layout-button"
         >
           <Plus size={16} />
           New Layout

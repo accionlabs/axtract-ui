@@ -119,7 +119,7 @@ export default function FileList({
   };
 
   return (
-    <Card>
+    <Card className="file-list">
       <CardHeader>
         <CardTitle>File Configurations</CardTitle>
       </CardHeader>

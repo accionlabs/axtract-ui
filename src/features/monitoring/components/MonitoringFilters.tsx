@@ -157,7 +157,7 @@ export function MonitoringFiltersBar({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 monitoring-filters">
       {/* Top row with search and clear filters */}
       <div className="flex items-center gap-4">
         <div className="flex-1">

@@ -108,7 +108,7 @@ export default function LayoutStats({ layouts }: LayoutStatsProps) {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 layout-stats">
       {/* Primary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard

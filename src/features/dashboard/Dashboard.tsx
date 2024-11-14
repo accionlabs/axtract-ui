@@ -163,14 +163,14 @@ export default function Dashboard() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-3xl font-bold dashboard-header">Dashboard</h1>
         <p className="text-muted-foreground">
           Overview of your layouts, files, and processing status
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 dashboard-stats">
         {stats.map((stat) => (
           <StatCard
             key={stat.title}
@@ -180,7 +180,7 @@ export default function Dashboard() {
       </div>
 
       {/* Charts and Activity Section */}
-      <div className="grid grid-cols-1 md:grid-cols-7 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-7 gap-6 dashboard-processing">
         {/* Processing Overview */}
         <Card className="md:col-span-4">
           <CardHeader>
@@ -266,7 +266,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Recent Activity */}
-        <Card className="md:col-span-3">
+        <Card className="md:col-span-3 dashboard-activity">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>Latest system events and changes</CardDescription>

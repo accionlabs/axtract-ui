@@ -112,7 +112,7 @@ export function MonitoringStats({ processes, isLoading = false }: MonitoringStat
   );
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 monitoring-stats">
       <StatCard
         title="Active Processes"
         value={stats.activeProcesses}

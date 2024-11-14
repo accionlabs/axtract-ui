@@ -89,7 +89,7 @@ export default function LayoutList({
   };
 
   return (
-    <Card>
+    <Card className="layout-list">
       <CardHeader>
         <CardTitle>Layout List</CardTitle>
       </CardHeader>

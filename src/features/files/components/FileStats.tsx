@@ -8,7 +8,7 @@ interface FileStatsProps {
 
 export default function FileStats({ files }: FileStatsProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 file-stats">
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Total Files</CardTitle>
