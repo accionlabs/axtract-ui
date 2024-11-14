@@ -77,7 +77,6 @@ const MainLayout = () => {
             ))}
           </nav>
 
-          <FloatingTourButton />
 
         </div>
       </header>
