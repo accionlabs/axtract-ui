@@ -54,18 +54,6 @@ AxTract addresses common challenges in healthcare data management:
 
 4. **Error Management**: Comprehensive monitoring and retry mechanisms ensure reliable data delivery.
 
-## Technical Architecture
-
-- **Frontend**: React + TypeScript with shadcn/ui components
-- **Backend Services**:
-  - Database: KsEdw (source system)
-  - Scheduler: Jenkins
-  - Message Queue: Kafka
-  - Storage: AWS S3
-  - Secure Vault: Credential storage
-
-[Diagram: System Architecture]
-
 ## User Workflows
 
 ### Layout Management
@@ -103,9 +91,6 @@ AxTract addresses common challenges in healthcare data management:
 - Configurable retry mechanisms
 - Optimized for off-hours processing
 
-## Getting Started
-
-[Installation instructions coming soon]
 
 ## Development
 
@@ -132,6 +117,10 @@ npm run build
 
 ## Overview
 AxTract consists of two main components: a React-based frontend UI and a serverless AWS-based backend engine. The system enables business users to configure and manage data extracts through a modern web interface while leveraging cloud infrastructure for reliable data processing and delivery.
+
+![axtract architecture diagram](./public/images/axtract-architecture.svg)
+
+![axtract data flow diagram](./public/images/axtract-data-flows.svg)
 
 ## System Components
 
@@ -197,12 +186,4 @@ POST   /api/processes/retry/{id} # Retry failed process
 connect    /ws            # Connect to real-time updates
 disconnect /ws            # Disconnect from updates
 send       /ws/status    # Send status updates
-```
 
-## AxTract Architecture Diagram
-
-![axtract architecture diagram](/images/axtract-architecture.svg)
-
-## Axtract Data Flows
-
-![axtract data flow diagram](/images/axtract-data-flows.svg)
