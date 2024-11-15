@@ -1,0 +1,130 @@
+<svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="800" fill="#f8fafc" />
+  
+  <!-- Title -->
+  <text x="600" y="40" text-anchor="middle" font-size="24" font-weight="bold" fill="#1e293b">AxTract Data Processing Flow</text>
+
+  <!-- Data Source Layer -->
+  <rect x="50" y="100" width="200" height="150" fill="#dbeafe" rx="10" />
+  <text x="150" y="130" text-anchor="middle" font-weight="bold" fill="#1e40af">Data Sources</text>
+  
+  <!-- Source Systems -->
+  <rect x="70" y="150" width="160" height="40" fill="#ffffff" rx="5" stroke="#3b82f6" />
+  <text x="150" y="175" text-anchor="middle" fill="#1e40af">Healthcare EDW</text>
+  
+  <rect x="70" y="200" width="160" height="40" fill="#ffffff" rx="5" stroke="#3b82f6" />
+  <text x="150" y="225" text-anchor="middle" fill="#1e40af">Operational DBs</text>
+
+  <!-- Extraction Layer -->
+  <rect x="300" y="100" width="200" height="150" fill="#fef3c7" rx="10" />
+  <text x="400" y="130" text-anchor="middle" font-weight="bold" fill="#92400e">Data Extraction</text>
+  
+  <!-- Extraction Components -->
+  <rect x="320" y="150" width="160" height="40" fill="#ffffff" rx="5" stroke="#f59e0b" />
+  <text x="400" y="175" text-anchor="middle" fill="#92400e">AWS Glue Jobs</text>
+  
+  <rect x="320" y="200" width="160" height="40" fill="#ffffff" rx="5" stroke="#f59e0b" />
+  <text x="400" y="225" text-anchor="middle" fill="#92400e">Lambda Extractors</text>
+
+  <!-- Validation Layer -->
+  <rect x="550" y="100" width="200" height="150" fill="#dcfce7" rx="10" />
+  <text x="650" y="130" text-anchor="middle" font-weight="bold" fill="#166534">Data Validation</text>
+  
+  <!-- Validation Components -->
+  <rect x="570" y="150" width="160" height="40" fill="#ffffff" rx="5" stroke="#22c55e" />
+  <text x="650" y="175" text-anchor="middle" fill="#166534">Layout Validation</text>
+  
+  <rect x="570" y="200" width="160" height="40" fill="#ffffff" rx="5" stroke="#22c55e" />
+  <text x="650" y="225" text-anchor="middle" fill="#166534">Data Quality Checks</text>
+
+  <!-- Transformation Layer -->
+  <rect x="800" y="100" width="200" height="150" fill="#f3e8ff" rx="10" />
+  <text x="900" y="130" text-anchor="middle" font-weight="bold" fill="#6b21a8">Transformation</text>
+  
+  <!-- Transformation Components -->
+  <rect x="820" y="150" width="160" height="40" fill="#ffffff" rx="5" stroke="#a855f7" />
+  <text x="900" y="175" text-anchor="middle" fill="#6b21a8">Format Conversion</text>
+  
+  <rect x="820" y="200" width="160" height="40" fill="#ffffff" rx="5" stroke="#a855f7" />
+  <text x="900" y="225" text-anchor="middle" fill="#6b21a8">Data Enrichment</text>
+
+  <!-- Delivery Layer -->
+  <rect x="50" y="300" width="950" height="200" fill="#fee2e2" rx="10" />
+  <text x="525" y="330" text-anchor="middle" font-weight="bold" fill="#991b1b">Delivery Methods</text>
+  
+  <!-- SFTP Delivery -->
+  <rect x="70" y="350" width="280" height="120" fill="#ffffff" rx="5" stroke="#ef4444" />
+  <text x="210" y="380" text-anchor="middle" font-weight="bold" fill="#991b1b">SFTP Delivery</text>
+  <rect x="90" y="390" width="240" height="30" fill="#fecaca" rx="3" />
+  <text x="210" y="410" text-anchor="middle" fill="#991b1b" font-size="12">AWS Transfer Family</text>
+  <rect x="90" y="430" width="240" height="30" fill="#fecaca" rx="3" />
+  <text x="210" y="450" text-anchor="middle" fill="#991b1b" font-size="12">PGP Encryption</text>
+
+  <!-- API Delivery -->
+  <rect x="390" y="350" width="280" height="120" fill="#ffffff" rx="5" stroke="#ef4444" />
+  <text x="530" y="380" text-anchor="middle" font-weight="bold" fill="#991b1b">API Integration</text>
+  <rect x="410" y="390" width="240" height="30" fill="#fecaca" rx="3" />
+  <text x="530" y="410" text-anchor="middle" fill="#991b1b" font-size="12">REST/GraphQL Endpoints</text>
+  <rect x="410" y="430" width="240" height="30" fill="#fecaca" rx="3" />
+  <text x="530" y="450" text-anchor="middle" fill="#991b1b" font-size="12">OAuth Authentication</text>
+
+  <!-- Database Delivery -->
+  <rect x="710" y="350" width="280" height="120" fill="#ffffff" rx="5" stroke="#ef4444" />
+  <text x="850" y="380" text-anchor="middle" font-weight="bold" fill="#991b1b">Database Load</text>
+  <rect x="730" y="390" width="240" height="30" fill="#fecaca" rx="3" />
+  <text x="850" y="410" text-anchor="middle" fill="#991b1b" font-size="12">Bulk Load Operations</text>
+  <rect x="730" y="430" width="240" height="30" fill="#fecaca" rx="3" />
+  <text x="850" y="450" text-anchor="middle" fill="#991b1b" font-size="12">Transaction Management</text>
+
+  <!-- Monitoring Layer -->
+  <rect x="50" y="550" width="950" height="150" fill="#e2e8f0" rx="10" />
+  <text x="525" y="580" text-anchor="middle" font-weight="bold" fill="#334155">Monitoring & Logging</text>
+  
+  <!-- Monitoring Components -->
+  <rect x="70" y="600" width="280" height="80" fill="#ffffff" rx="5" stroke="#94a3b8" />
+  <text x="210" y="635" text-anchor="middle" fill="#334155">CloudWatch Metrics</text>
+  
+  <rect x="390" y="600" width="280" height="80" fill="#ffffff" rx="5" stroke="#94a3b8" />
+  <text x="530" y="635" text-anchor="middle" fill="#334155">Process Tracking</text>
+  
+  <rect x="710" y="600" width="280" height="80" fill="#ffffff" rx="5" stroke="#94a3b8" />
+  <text x="850" y="635" text-anchor="middle" fill="#334155">Alert Management</text>
+
+  <!-- Flow Arrows -->
+  <!-- Source to Extraction -->
+  <path d="M 250 175 L 300 175" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" />
+  
+  <!-- Extraction to Validation -->
+  <path d="M 500 175 L 550 175" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" />
+  
+  <!-- Validation to Transformation -->
+  <path d="M 750 175 L 800 175" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" />
+  
+  <!-- Transformation to Delivery -->
+  <path d="M 900 250 L 900 300" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" />
+  
+  <!-- Delivery to Monitoring -->
+  <path d="M 525 500 L 525 550" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)" />
+
+  <!-- Arrow Marker Definition -->
+  <defs>
+    <marker
+      id="arrowhead"
+      markerWidth="10"
+      markerHeight="7"
+      refX="9"
+      refY="3.5"
+      orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+    </marker>
+  </defs>
+
+  <!-- Status Indicators -->
+  <circle cx="400" y="175" r="4" fill="#22c55e" />
+  <circle cx="650" y="175" r="4" fill="#22c55e" />
+  <circle cx="900" y="175" r="4" fill="#22c55e" />
+  <circle cx="210" y="410" r="4" fill="#22c55e" />
+  <circle cx="530" y="410" r="4" fill="#22c55e" />
+  <circle cx="850" y="410" r="4" fill="#22c55e" />
+</svg>

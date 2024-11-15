@@ -1,0 +1,97 @@
+<svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1000" height="700" fill="#f8fafc" />
+  
+  <!-- Title -->
+  <text x="500" y="40" text-anchor="middle" font-size="24" font-weight="bold" fill="#1e293b">AxTract System Architecture</text>
+
+  <!-- Frontend Layer -->
+  <rect x="50" y="100" width="200" height="500" fill="#e2e8f0" rx="10" />
+  <text x="150" y="130" text-anchor="middle" font-weight="bold" fill="#334155">Frontend Layer</text>
+  
+  <!-- Frontend Components -->
+  <rect x="70" y="160" width="160" height="80" fill="#ffffff" rx="5" stroke="#94a3b8" />
+  <text x="150" y="200" text-anchor="middle" fill="#334155">Layout Manager</text>
+  
+  <rect x="70" y="260" width="160" height="80" fill="#ffffff" rx="5" stroke="#94a3b8" />
+  <text x="150" y="300" text-anchor="middle" fill="#334155">File Configuration</text>
+  
+  <rect x="70" y="360" width="160" height="80" fill="#ffffff" rx="5" stroke="#94a3b8" />
+  <text x="150" y="400" text-anchor="middle" fill="#334155">Schedule Manager</text>
+  
+  <rect x="70" y="460" width="160" height="80" fill="#ffffff" rx="5" stroke="#94a3b8" />
+  <text x="150" y="500" text-anchor="middle" fill="#334155">Monitoring Dashboard</text>
+
+  <!-- API Gateway Layer -->
+  <rect x="300" y="100" width="150" height="500" fill="#bfdbfe" rx="10" />
+  <text x="375" y="130" text-anchor="middle" font-weight="bold" fill="#1e40af">API Gateway</text>
+  
+  <!-- API Routes -->
+  <rect x="320" y="160" width="110" height="40" fill="#ffffff" rx="5" stroke="#3b82f6" />
+  <text x="375" y="185" text-anchor="middle" fill="#1e40af" font-size="12">REST API</text>
+  
+  <rect x="320" y="220" width="110" height="40" fill="#ffffff" rx="5" stroke="#3b82f6" />
+  <text x="375" y="245" text-anchor="middle" fill="#1e40af" font-size="12">WebSocket API</text>
+
+  <!-- Backend Services Layer -->
+  <rect x="500" y="100" width="200" height="500" fill="#e2e8f0" rx="10" />
+  <text x="600" y="130" text-anchor="middle" font-weight="bold" fill="#334155">Backend Services</text>
+  
+  <!-- Service Components -->
+  <rect x="520" y="160" width="160" height="60" fill="#ffffff" rx="5" stroke="#94a3b8" />
+  <text x="600" y="195" text-anchor="middle" fill="#334155">Layout Service</text>
+  
+  <rect x="520" y="240" width="160" height="60" fill="#ffffff" rx="5" stroke="#94a3b8" />
+  <text x="600" y="275" text-anchor="middle" fill="#334155">File Service</text>
+  
+  <rect x="520" y="320" width="160" height="60" fill="#ffffff" rx="5" stroke="#94a3b8" />
+  <text x="600" y="355" text-anchor="middle" fill="#334155">Schedule Service</text>
+  
+  <rect x="520" y="400" width="160" height="60" fill="#ffffff" rx="5" stroke="#94a3b8" />
+  <text x="600" y="435" text-anchor="middle" fill="#334155">Processing Service</text>
+  
+  <rect x="520" y="480" width="160" height="60" fill="#ffffff" rx="5" stroke="#94a3b8" />
+  <text x="600" y="515" text-anchor="middle" fill="#334155">Delivery Service</text>
+
+  <!-- AWS Infrastructure Layer -->
+  <rect x="750" y="100" width="200" height="500" fill="#fef3c7" rx="10" />
+  <text x="850" y="130" text-anchor="middle" font-weight="bold" fill="#92400e">AWS Infrastructure</text>
+  
+  <!-- AWS Services -->
+  <rect x="770" y="160" width="160" height="50" fill="#ffffff" rx="5" stroke="#f59e0b" />
+  <text x="850" y="190" text-anchor="middle" fill="#92400e">Lambda Functions</text>
+  
+  <rect x="770" y="230" width="160" height="50" fill="#ffffff" rx="5" stroke="#f59e0b" />
+  <text x="850" y="260" text-anchor="middle" fill="#92400e">DynamoDB</text>
+  
+  <rect x="770" y="300" width="160" height="50" fill="#ffffff" rx="5" stroke="#f59e0b" />
+  <text x="850" y="330" text-anchor="middle" fill="#92400e">S3</text>
+  
+  <rect x="770" y="370" width="160" height="50" fill="#ffffff" rx="5" stroke="#f59e0b" />
+  <text x="850" y="400" text-anchor="middle" fill="#92400e">EventBridge</text>
+  
+  <rect x="770" y="440" width="160" height="50" fill="#ffffff" rx="5" stroke="#f59e0b" />
+  <text x="850" y="470" text-anchor="middle" fill="#92400e">AWS Transfer</text>
+  
+  <rect x="770" y="510" width="160" height="50" fill="#ffffff" rx="5" stroke="#f59e0b" />
+  <text x="850" y="540" text-anchor="middle" fill="#92400e">CloudWatch</text>
+
+  <!-- Connection Lines -->
+  <!-- Frontend to API -->
+  <line x1="250" y1="200" x2="300" y2="200" stroke="#64748b" stroke-width="2" />
+  <line x1="250" y1="300" x2="300" y2="300" stroke="#64748b" stroke-width="2" />
+  <line x1="250" y1="400" x2="300" y2="400" stroke="#64748b" stroke-width="2" />
+  <line x1="250" y1="500" x2="300" y2="500" stroke="#64748b" stroke-width="2" />
+
+  <!-- API to Backend -->
+  <line x1="450" y1="200" x2="500" y2="200" stroke="#64748b" stroke-width="2" />
+  <line x1="450" y1="300" x2="500" y2="300" stroke="#64748b" stroke-width="2" />
+  <line x1="450" y1="400" x2="500" y2="400" stroke="#64748b" stroke-width="2" />
+  <line x1="450" y1="500" x2="500" y2="500" stroke="#64748b" stroke-width="2" />
+
+  <!-- Backend to AWS -->
+  <line x1="700" y1="200" x2="750" y2="200" stroke="#64748b" stroke-width="2" />
+  <line x1="700" y1="300" x2="750" y2="300" stroke="#64748b" stroke-width="2" />
+  <line x1="700" y1="400" x2="750" y2="400" stroke="#64748b" stroke-width="2" />
+  <line x1="700" y1="500" x2="750" y2="500" stroke="#64748b" stroke-width="2" />
+</svg>

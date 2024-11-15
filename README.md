@@ -40,7 +40,7 @@ AxTract is a modern, web-based self-service extract tool that enables business u
 - Historical performance metrics
 - Email notifications for success/failure
 
-[Screenshot: Monitoring Dashboard]
+![Screenshot: Monitoring Dashboard](./public/images/monitoring.png)
 
 ## Business Context
 
@@ -128,18 +128,81 @@ npm run dev
 npm run build
 ```
 
-## Contributing
+# AxTract System Architecture
 
-[Contribution guidelines coming soon]
+## Overview
+AxTract consists of two main components: a React-based frontend UI and a serverless AWS-based backend engine. The system enables business users to configure and manage data extracts through a modern web interface while leveraging cloud infrastructure for reliable data processing and delivery.
 
-## License
+## System Components
 
-[License information coming soon]
+### Frontend (UI Layer)
+- **Technology Stack**: React, TypeScript, shadcn/ui
+- **Key Features**:
+  - Layout Manager
+  - File Configuration
+  - Schedule Management
+  - Monitoring Dashboard
+- **State Management**: Context API with reducers
+- **API Integration**: REST API calls to backend services
 
-## Support
+### Backend (Processing Engine)
+- **Core Services**:
+  - Layout Management Service
+  - File Processing Service
+  - Schedule Management Service
+  - Delivery Service
+  - Monitoring Service
+- **Infrastructure**: AWS Serverless Architecture
+- **Security**: IAM roles, API Gateway authentication, encryption at rest and in transit
 
-[Support information coming soon]
+## API Integration Layer
 
----
+### REST API Endpoints
 
-For more information, contact [contact information coming soon]
+1. Layout Management API:
+```
+POST   /api/layouts       # Create layout
+GET    /api/layouts       # List layouts
+GET    /api/layouts/{id}  # Get layout details
+PUT    /api/layouts/{id}  # Update layout
+DELETE /api/layouts/{id}  # Delete layout
+```
+
+2. File Configuration API:
+```
+POST   /api/files         # Create file configuration
+GET    /api/files         # List files
+GET    /api/files/{id}    # Get file details
+PUT    /api/files/{id}    # Update file
+DELETE /api/files/{id}    # Delete file
+```
+
+3. Schedule Management API:
+```
+POST   /api/schedules     # Create schedule
+GET    /api/schedules     # List schedules
+PUT    /api/schedules/{id}# Update schedule
+DELETE /api/schedules/{id}# Delete schedule
+```
+
+4. Monitoring API:
+```
+GET    /api/processes     # List processes
+GET    /api/processes/{id}# Get process details
+POST   /api/processes/retry/{id} # Retry failed process
+```
+
+### WebSocket API
+```
+connect    /ws            # Connect to real-time updates
+disconnect /ws            # Disconnect from updates
+send       /ws/status    # Send status updates
+```
+
+## AxTract Architecture Diagram
+
+![axtract architecture diagram](/images/axtract-architecture.svg)
+
+## Axtract Data Flows
+
+![axtract data flow diagram](/images/axtract-data-flows.svg)
