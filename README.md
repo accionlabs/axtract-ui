@@ -118,9 +118,9 @@ npm run build
 ## Overview
 AxTract consists of two main components: a React-based frontend UI and a serverless AWS-based backend engine. The system enables business users to configure and manage data extracts through a modern web interface while leveraging cloud infrastructure for reliable data processing and delivery.
 
-![axtract architecture diagram](./public/images/axtract-architecture.svg)
+![axtract architecture diagram](./public/images/axtract-architecture.png)
 
-![axtract data flow diagram](./public/images/axtract-data-flows.svg)
+![axtract data flow diagram](./public/images/axtract-data-flows.png)
 
 ## System Components
 
