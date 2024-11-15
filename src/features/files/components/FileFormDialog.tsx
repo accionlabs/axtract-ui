@@ -25,18 +25,74 @@ import { Form } from '@/components/ui/form';
 
 import { BasicConfigTab, DeliveryConfigTab, ScheduleConfigTab, NotificationsTab } from './tabs';
 
-// Form validation schemas
+const sftpConfigSchema = z.object({
+    host: z.string().min(1, 'Host is required'),
+    port: z.number().min(1).max(65535),
+    username: z.string().min(1, 'Username is required'),
+    path: z.string().min(1, 'Path is required'),
+    knownHostKey: z.string().optional()
+});
+
+const apiConfigSchema = z.object({
+    method: z.enum(['POST', 'PUT', 'PATCH']),
+    url: z.string().url('Must be a valid URL'),
+    headers: z.string().transform((str) => {
+        try {
+            return JSON.parse(str);
+        } catch {
+            return {};
+        }
+    }).optional(),
+    validateSsl: z.boolean(),
+    timeout: z.number().min(1).max(300).optional(), // seconds
+    retryStrategy: z.object({
+        maxRetries: z.number().min(0).max(5),
+        backoffMultiplier: z.number().min(1).max(3)
+    }).optional()
+});
+
+const databaseConfigSchema = z.object({
+    type: z.enum(['postgresql', 'mysql', 'sqlserver', 'oracle']),
+    host: z.string().min(1, 'Host is required'),
+    port: z.number().min(1).max(65535),
+    name: z.string().min(1, 'Database name is required'),
+    username: z.string().min(1, 'Username is required'),
+    schema: z.string().min(1, 'Schema is required'),
+    table: z.string().min(1, 'Table name is required'),
+    writeMode: z.enum(['insert', 'upsert', 'replace']),
+    batchSize: z.number().min(1).max(10000).optional(),
+    connectionTimeout: z.number().min(1).max(300).optional() // seconds
+});
+
+const deliveryConfigSchema = z.object({
+    type: z.enum(['sftp', 'api', 'database']),
+    sftp: sftpConfigSchema.optional(),
+    api: apiConfigSchema.optional(),
+    database: databaseConfigSchema.optional()
+}).refine(
+    (data) => {
+        // Ensure the corresponding config is present based on type
+        switch (data.type) {
+            case 'sftp':
+                return !!data.sftp;
+            case 'api':
+                return !!data.api;
+            case 'database':
+                return !!data.database;
+            default:
+                return false;
+        }
+    },
+    {
+        message: "Configuration is required for the selected delivery method"
+    }
+);
+
 const fileFormSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     layoutId: z.string().min(1, 'Layout is required'),
-    format: z.enum(['CSV', 'TSV', 'FIXED']),
-    sftpConfig: z.object({
-        host: z.string().min(1, 'Host is required'),
-        port: z.number().min(1).max(65535),
-        username: z.string().min(1, 'Username is required'),
-        path: z.string().min(1, 'Path is required'),
-        knownHostKey: z.string().optional()
-    }).optional(),
+    format: z.enum(['CSV', 'TSV', 'JSON', 'FIXED']),
+    deliveryConfig: deliveryConfigSchema.optional(),
     scheduleConfig: z.object({
         frequency: z.enum(['daily', 'weekly', 'monthly']),
         time: z.string(),
@@ -77,10 +133,11 @@ export default function FileFormDialog({
 }: FileFormDialogProps) {
     // State for active tab and feature toggles
     const [activeTab, setActiveTab] = React.useState('basic');
-    const [showSftp, setShowSftp] = React.useState(false);
     const [showSchedule, setShowSchedule] = React.useState(false);
     const [showEncryption, setShowEncryption] = React.useState(false);
     const [showNotifications, setShowNotifications] = React.useState(false);
+    const [showDelivery, setShowDelivery] = React.useState(false);
+    const [, setDeliveryType] = React.useState('SFTP')
 
     // Initialize form with react-hook-form
     const form = useForm<FormSchema>({
@@ -89,12 +146,32 @@ export default function FileFormDialog({
             name: initialData?.name || '',
             layoutId: initialData?.layoutId || '',
             format: initialData?.format || 'CSV',
-            sftpConfig: initialData?.sftpConfig,
-            scheduleConfig: initialData?.scheduleConfig,
+            // New delivery configuration structure
+            deliveryConfig: initialData?.deliveryConfig || {
+                type: 'sftp',
+                sftp: {
+                    host: '',
+                    port: 22,
+                    username: '',
+                    path: '',
+                    knownHostKey: ''
+                }
+            },
+            // Schedule configuration
+            scheduleConfig: initialData?.scheduleConfig || {
+                frequency: 'daily',
+                time: '00:00',
+                timezone: 'UTC',
+                daysOfWeek: undefined,
+                daysOfMonth: undefined
+            },
+            // Encryption configuration
             encryptionConfig: initialData?.encryptionConfig || {
                 enabled: false,
-                type: 'PGP'
+                type: 'PGP',
+                publicKey: undefined
             },
+            // Notification configuration
             notificationConfig: initialData?.notificationConfig || {
                 notifyOnSuccess: false,
                 notifyOnFailure: true,
@@ -107,6 +184,58 @@ export default function FileFormDialog({
         }
     });
 
+    // Add watch effect to handle delivery type changes
+    React.useEffect(() => {
+        const subscription = form.watch((value, { name }) => {
+            if (name === 'deliveryConfig.type') {
+                const deliveryType = value.deliveryConfig?.type;
+
+                // Reset other delivery configs when type changes
+                if (deliveryType === 'sftp') {
+                    form.setValue('deliveryConfig.api', undefined);
+                    form.setValue('deliveryConfig.database', undefined);
+                    form.setValue('deliveryConfig.sftp', {
+                        host: '',
+                        port: 22,
+                        username: '',
+                        path: '',
+                        knownHostKey: ''
+                    });
+                } else if (deliveryType === 'api') {
+                    form.setValue('deliveryConfig.sftp', undefined);
+                    form.setValue('deliveryConfig.database', undefined);
+                    form.setValue('deliveryConfig.api', {
+                        method: 'POST',
+                        url: '',
+                        validateSsl: true,
+                        timeout: 60,
+                        retryStrategy: {
+                            maxRetries: 3,
+                            backoffMultiplier: 2
+                        }
+                    });
+                } else if (deliveryType === 'database') {
+                    form.setValue('deliveryConfig.sftp', undefined);
+                    form.setValue('deliveryConfig.api', undefined);
+                    form.setValue('deliveryConfig.database', {
+                        type: 'postgresql',
+                        host: '',
+                        port: 5432,
+                        name: '',
+                        username: '',
+                        schema: 'public',
+                        table: '',
+                        writeMode: 'insert',
+                        batchSize: 1000,
+                        connectionTimeout: 30
+                    });
+                }
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, [form]);
+
     // Reset form and states when dialog opens/closes or initialData changes
     React.useEffect(() => {
         if (open) {
@@ -114,19 +243,49 @@ export default function FileFormDialog({
                 name: initialData?.name || '',
                 layoutId: initialData?.layoutId || '',
                 format: initialData?.format || 'CSV',
-                sftpConfig: initialData?.sftpConfig,
-                scheduleConfig: initialData?.scheduleConfig,
+                deliveryConfig: initialData?.deliveryConfig || {
+                    type: 'sftp',
+                    sftp: {
+                        host: '',
+                        port: 22,
+                        username: '',
+                        path: '',
+                        knownHostKey: ''
+                    }
+                },
+                scheduleConfig: initialData?.scheduleConfig || {
+                    frequency: 'daily',
+                    time: '00:00',
+                    timezone: 'UTC',
+                    daysOfWeek: undefined,
+                    daysOfMonth: undefined
+                },
                 encryptionConfig: initialData?.encryptionConfig || {
                     enabled: false,
                     type: 'PGP'
                 },
-                notificationConfig: initialData?.notificationConfig
+                notificationConfig: initialData?.notificationConfig || {
+                    notifyOnSuccess: false,
+                    notifyOnFailure: true,
+                    notificationEmails: [],
+                    retryConfig: {
+                        maxAttempts: 3,
+                        delayMinutes: 15
+                    }
+                }
             });
-            setShowSftp(!!initialData?.sftpConfig);
+
+            // Set show states based on initial data
+            setShowDelivery(!!initialData?.deliveryConfig);
             setShowSchedule(!!initialData?.scheduleConfig);
             setShowEncryption(!!initialData?.encryptionConfig?.enabled);
             setShowNotifications(!!initialData?.notificationConfig);
             setActiveTab('basic');
+
+            // If editing, ensure delivery type is properly set
+            if (initialData?.deliveryConfig) {
+                setDeliveryType(initialData.deliveryConfig.type);
+            }
         }
     }, [open, initialData, form.reset]);
 
@@ -134,7 +293,13 @@ export default function FileFormDialog({
     const handleSubmit = (data: FormSchema) => {
         const fileData: FileFormValues = {
             ...data,
-            sftpConfig: showSftp ? data.sftpConfig : undefined,
+            deliveryConfig: showDelivery ? {
+                type: data.deliveryConfig?.type || 'sftp',
+                // Only include the config for the selected delivery type
+                sftp: data.deliveryConfig?.type === 'sftp' ? data.deliveryConfig.sftp : undefined,
+                api: data.deliveryConfig?.type === 'api' ? data.deliveryConfig.api : undefined,
+                database: data.deliveryConfig?.type === 'database' ? data.deliveryConfig.database : undefined
+            } : undefined,
             scheduleConfig: showSchedule ? data.scheduleConfig : undefined,
             encryptionConfig: showEncryption ? {
                 ...data.encryptionConfig,
@@ -143,6 +308,14 @@ export default function FileFormDialog({
             } : undefined,
             notificationConfig: showNotifications ? data.notificationConfig : undefined
         };
+
+        // Clean up undefined configurations
+        if (fileData.deliveryConfig) {
+            if (!fileData.deliveryConfig.sftp && !fileData.deliveryConfig.api && !fileData.deliveryConfig.database) {
+                fileData.deliveryConfig = undefined;
+            }
+        }
+
         onSubmit(fileData);
     };
 
@@ -170,16 +343,16 @@ export default function FileFormDialog({
 
                             <div className="flex-1 overflow-y-auto px-6 py-4">
                                 <TabsContent value="basic" className="mt-0">
-                                    <BasicConfigTab 
-                                        form={form} 
+                                    <BasicConfigTab
+                                        form={form}
                                     />
                                 </TabsContent>
 
                                 <TabsContent value="delivery" className="mt-0">
                                     <DeliveryConfigTab
                                         form={form}
-                                        showSftp={showSftp}
-                                        setShowSftp={setShowSftp}
+                                        showDelivery={showDelivery}
+                                        setShowDelivery={setShowDelivery}
                                         showEncryption={showEncryption}
                                         setShowEncryption={setShowEncryption}
                                     />
@@ -207,7 +380,7 @@ export default function FileFormDialog({
                             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                                 Cancel
                             </Button>
-                            <Button 
+                            <Button
                                 type="submit"
                                 disabled={!form.formState.isValid}
                             >

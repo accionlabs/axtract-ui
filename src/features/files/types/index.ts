@@ -1,7 +1,8 @@
 // src/features/files/types/index.ts
 
-export type FileFormat = 'CSV' | 'TSV' | 'FIXED';
 export type FileStatus = 'draft' | 'active' | 'inactive';
+export type DeliveryMethod = 'sftp' | 'api' | 'database';
+export type FileFormat = 'CSV' | 'TSV' | 'JSON' | 'FIXED';
 
 export interface NotificationConfig {
   notifyOnSuccess: boolean;
@@ -19,6 +20,40 @@ export interface SFTPConfiguration {
   username: string;
   path: string;
   knownHostKey?: string;
+}
+
+export interface RetryStrategy {
+  maxRetries: number;
+  backoffMultiplier: number;
+}
+
+export interface APIConfiguration {
+  method: 'POST' | 'PUT' | 'PATCH';
+  url: string;
+  headers?: Record<string, string>;
+  validateSsl: boolean;
+  timeout?: number;
+  retryStrategy?: RetryStrategy;
+}
+
+export interface DatabaseConfiguration {
+  type: 'postgresql' | 'mysql' | 'sqlserver' | 'oracle';
+  host: string;
+  port: number;
+  name: string;
+  username: string;
+  schema: string;
+  table: string;
+  writeMode: 'insert' | 'upsert' | 'replace';
+  batchSize?: number;
+  connectionTimeout?: number;
+}
+
+export interface DeliveryConfiguration {
+  type: DeliveryMethod;
+  sftp?: SFTPConfiguration;
+  api?: APIConfiguration;
+  database?: DatabaseConfiguration;
 }
 
 export interface ScheduleConfiguration {
@@ -43,9 +78,9 @@ export interface FileConfiguration {
   status: FileStatus;
   createdAt: string;
   updatedAt: string;
-  sftpConfig?: SFTPConfiguration;
-  scheduleConfig?: ScheduleConfiguration;
+  deliveryConfig?: DeliveryConfiguration;
   encryptionConfig?: EncryptionConfiguration;
+  scheduleConfig?: ScheduleConfiguration;
   notificationConfig?: NotificationConfig;
 }
 
@@ -53,9 +88,9 @@ export interface FileFormValues {
   name: string;
   layoutId: string;
   format: FileFormat;
-  sftpConfig?: SFTPConfiguration;
-  scheduleConfig?: ScheduleConfiguration;
+  deliveryConfig?: DeliveryConfiguration;
   encryptionConfig?: EncryptionConfiguration;
+  scheduleConfig?: ScheduleConfiguration;
   notificationConfig?: NotificationConfig;
 }
 

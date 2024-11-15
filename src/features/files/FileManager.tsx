@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
 import { useAppState } from '@/context/AppStateContext';
 import { FileConfiguration, FileStatus } from './types';
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -23,7 +23,7 @@ import FileFormDialog from './components/FileFormDialog';
 
 export default function FileManager() {
   // Get state and actions from AppState context
-  const { 
+  const {
     state: { files, layouts },
     addFile,
     updateFile,
@@ -82,6 +82,7 @@ export default function FileManager() {
     }
 
     if (newStatus === 'active') {
+      // Check layout status
       if (layout.status !== 'active') {
         toast({
           title: "Layout Not Active",
@@ -91,14 +92,122 @@ export default function FileManager() {
         return false;
       }
 
-      const hasRequiredConfig = file.layoutId && (file.sftpConfig || file.scheduleConfig);
-      if (!hasRequiredConfig) {
+      // Check delivery configuration
+      if (!file.deliveryConfig) {
         toast({
-          title: "Missing Configuration",
-          description: "File requires SFTP or schedule configuration to be activated.",
+          title: "Missing Delivery Configuration",
+          description: "File requires a delivery method (SFTP, API, or Database) to be activated.",
           variant: "destructive"
         });
         return false;
+      }
+
+      // Validate configuration based on delivery type
+      const { deliveryConfig } = file;
+      switch (deliveryConfig.type) {
+        case 'sftp':
+          if (!deliveryConfig.sftp || !deliveryConfig.sftp.host || !deliveryConfig.sftp.path) {
+            toast({
+              title: "Invalid SFTP Configuration",
+              description: "SFTP configuration requires at least a host and path.",
+              variant: "destructive"
+            });
+            return false;
+          }
+          break;
+
+        case 'api':
+          if (!deliveryConfig.api || !deliveryConfig.api.url) {
+            toast({
+              title: "Invalid API Configuration",
+              description: "API configuration requires at least an endpoint URL.",
+              variant: "destructive"
+            });
+            return false;
+          }
+          break;
+
+        case 'database':
+          if (!deliveryConfig.database ||
+            !deliveryConfig.database.host ||
+            !deliveryConfig.database.name ||
+            !deliveryConfig.database.table) {
+            toast({
+              title: "Invalid Database Configuration",
+              description: "Database configuration requires host, database name, and table.",
+              variant: "destructive"
+            });
+            return false;
+          }
+          break;
+
+        default:
+          toast({
+            title: "Invalid Delivery Type",
+            description: "Selected delivery method is not supported.",
+            variant: "destructive"
+          });
+          return false;
+      }
+
+      // Check for schedule configuration if required
+      if (file.scheduleConfig) {
+        if (!file.scheduleConfig.frequency || !file.scheduleConfig.time) {
+          toast({
+            title: "Invalid Schedule Configuration",
+            description: "Schedule configuration requires frequency and time to be set.",
+            variant: "destructive"
+          });
+          return false;
+        }
+
+        // Validate frequency-specific settings
+        switch (file.scheduleConfig.frequency) {
+          case 'weekly':
+            if (!file.scheduleConfig.daysOfWeek?.length) {
+              toast({
+                title: "Invalid Schedule Configuration",
+                description: "Weekly schedule requires at least one day of the week to be selected.",
+                variant: "destructive"
+              });
+              return false;
+            }
+            break;
+
+          case 'monthly':
+            if (!file.scheduleConfig.daysOfMonth?.length) {
+              toast({
+                title: "Invalid Schedule Configuration",
+                description: "Monthly schedule requires at least one day of the month to be selected.",
+                variant: "destructive"
+              });
+              return false;
+            }
+            break;
+        }
+      }
+
+      // Check encryption if enabled
+      if (file.encryptionConfig?.enabled && !file.encryptionConfig.publicKey) {
+        toast({
+          title: "Invalid Encryption Configuration",
+          description: "PGP encryption requires a public key.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Check notification configuration if present
+      if (file.notificationConfig) {
+        if ((file.notificationConfig.notifyOnSuccess || file.notificationConfig.notifyOnFailure) &&
+          !file.notificationConfig.notificationEmails?.length) {
+          toast({
+            title: "Invalid Notification Configuration",
+            description: "Notifications require at least one email address.",
+            variant: "destructive"
+          });
+          return false;
+        }
       }
     }
 
@@ -163,7 +272,7 @@ export default function FileManager() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold  file-manager-header">File Manager</h1>
-        <Button 
+        <Button
           onClick={() => setIsCreateDialogOpen(true)}
           className="flex items-center gap-2 create-file-button"
         >
@@ -188,8 +297,8 @@ export default function FileManager() {
         initialData={selectedFile}
       />
 
-      <AlertDialog 
-        open={!!fileToDelete} 
+      <AlertDialog
+        open={!!fileToDelete}
         onOpenChange={(open) => !open && setFileToDelete(null)}
       >
         <AlertDialogContent>
@@ -206,7 +315,7 @@ export default function FileManager() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={fileToDelete?.status === 'active'}

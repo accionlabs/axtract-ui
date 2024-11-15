@@ -37,7 +37,10 @@ import {
   Bell,
   AlertTriangle,
   CheckCircle2,
-  BellOff
+  BellOff,
+  Globe,
+  Database,
+  Lock
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
@@ -201,24 +204,75 @@ export default function FileList({
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
-                      {file.sftpConfig && (
+                      {/* Delivery Configuration */}
+                      {file.deliveryConfig && (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Badge variant="outline" className="gap-1 w-fit">
-                                <Send className="h-3 w-3" />
-                                SFTP
+                              <Badge
+                                variant="outline"
+                                className="gap-1 w-fit"
+                              >
+                                {file.deliveryConfig.type === 'sftp' && (
+                                  <>
+                                    <Send className="h-3 w-3" />
+                                    SFTP
+                                  </>
+                                )}
+                                {file.deliveryConfig.type === 'api' && (
+                                  <>
+                                    <Globe className="h-3 w-3" />
+                                    API
+                                  </>
+                                )}
+                                {file.deliveryConfig.type === 'database' && (
+                                  <>
+                                    <Database className="h-3 w-3" />
+                                    DB
+                                  </>
+                                )}
                               </Badge>
                             </TooltipTrigger>
                             <TooltipContent>
                               <div className="space-y-1">
-                                <p className="text-sm">Host: {file.sftpConfig.host}</p>
-                                <p className="text-sm">Path: {file.sftpConfig.path}</p>
+                                {file.deliveryConfig.type === 'sftp' && file.deliveryConfig.sftp && (
+                                  <>
+                                    <p className="text-sm">Host: {file.deliveryConfig.sftp.host}</p>
+                                    <p className="text-sm">Path: {file.deliveryConfig.sftp.path}</p>
+                                  </>
+                                )}
+                                {file.deliveryConfig.type === 'api' && file.deliveryConfig.api && (
+                                  <>
+                                    <p className="text-sm font-medium">{file.deliveryConfig.api.method} Request</p>
+                                    <p className="text-sm">URL: {file.deliveryConfig.api.url}</p>
+                                    <p className="text-sm">Timeout: {file.deliveryConfig.api.timeout}s</p>
+                                    {file.deliveryConfig.api.retryStrategy && (
+                                      <p className="text-sm">
+                                        Retries: {file.deliveryConfig.api.retryStrategy.maxRetries}x
+                                        ({file.deliveryConfig.api.retryStrategy.backoffMultiplier}x backoff)
+                                      </p>
+                                    )}
+                                  </>
+                                )}
+                                {file.deliveryConfig.type === 'database' && file.deliveryConfig.database && (
+                                  <>
+                                    <p className="text-sm font-medium">{file.deliveryConfig.database.type}</p>
+                                    <p className="text-sm">
+                                      {file.deliveryConfig.database.host}:{file.deliveryConfig.database.port}
+                                    </p>
+                                    <p className="text-sm">
+                                      {file.deliveryConfig.database.schema}.{file.deliveryConfig.database.table}
+                                    </p>
+                                    <p className="text-sm">Mode: {file.deliveryConfig.database.writeMode}</p>
+                                  </>
+                                )}
                               </div>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       )}
+
+                      {/* Schedule Configuration */}
                       {scheduleInfo && (
                         <TooltipProvider>
                           <Tooltip>
@@ -234,9 +288,11 @@ export default function FileList({
                           </Tooltip>
                         </TooltipProvider>
                       )}
+
+                      {/* Encryption Configuration */}
                       {file.encryptionConfig?.enabled && (
                         <Badge variant="outline" className="gap-1 w-fit">
-                          <span className="h-3 w-3">🔒</span>
+                          <Lock className="h-3 w-3" />
                           PGP
                         </Badge>
                       )}

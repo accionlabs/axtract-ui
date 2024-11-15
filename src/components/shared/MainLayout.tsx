@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ROUTES } from '@/routes/constants';
 import { LayoutGrid, FileText, Settings, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import FloatingTourButton from '@/features/tours/FloatingTourButton';
+//import FloatingTourButton from '@/features/tours/FloatingTourButton';
 
 const MainLayout = () => {
   const navigate = useNavigate();
