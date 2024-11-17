@@ -63,7 +63,7 @@ AxTract consists of two main components: a React-based frontend UI and a serverl
    - Performance metrics
 
 ##### Infrastructure Components
-- **Database**: KsEdw
+- **Database**: Primary EDW
   - Read-only access to source data
   - Optimized query patterns
   - Connection pooling
