@@ -17,8 +17,23 @@ AxTract is a modern, web-based self-service extract tool that enables business u
 
 ### File Configuration Manager
 - Configure file outputs based on layouts
-- Support for multiple file formats (CSV, TSV, Fixed Length)
-- SFTP delivery configuration
+- Support for multiple file formats (CSV, TSV, Fixed Length, JSON)
+- Multiple delivery methods:
+  - **SFTP Transfer**
+    - Host and path configuration
+    - Port customization
+    - SSH key authentication
+    - Known hosts verification
+  - **API Endpoints**
+    - Multiple HTTP methods (POST, PUT, PATCH)
+    - Custom header configuration
+    - SSL verification options
+    - Configurable timeout and retry strategy
+  - **Database Destinations**
+    - Support for multiple database types (PostgreSQL, MySQL, SQL Server, Oracle)
+    - Schema and table configuration 
+    - Write mode options (Insert, Upsert, Replace)
+    - Batch size and connection timeout configuration
 - PGP encryption options
 - Flexible scheduling options
 
@@ -30,6 +45,8 @@ AxTract is a modern, web-based self-service extract tool that enables business u
 - Account-based scheduling
 - Dependency management
 - Automated file generation and delivery
+- Timezone-aware scheduling
+- Custom retry strategies per delivery method
 
 ![Screenshot: Schedule Configuration](./public/images/monitoring.png)
 
@@ -39,6 +56,7 @@ AxTract is a modern, web-based self-service extract tool that enables business u
 - Comprehensive error tracking
 - Historical performance metrics
 - Email notifications for success/failure
+- Delivery status tracking for all destination types
 
 ![Screenshot: Monitoring Dashboard](./public/images/monitoring.png)
 
@@ -48,11 +66,92 @@ AxTract addresses common challenges in healthcare data management:
 
 1. **Vendor Data Requirements**: Healthcare organizations need to share data with multiple vendors, each requiring specific formats and delivery methods.
 
-2. **Compliance and Security**: Ensures secure data transmission with features like PGP encryption and SFTP delivery.
+2. **Compliance and Security**: Ensures secure data transmission with features like:
+   - PGP encryption
+   - SFTP with SSH key authentication
+   - SSL verification for API endpoints
+   - Secure database connections
+   - Credential vaulting
 
-3. **Operation Efficiency**: Reduces manual effort in data extraction and delivery through automation and scheduling.
+3. **Operation Efficiency**: Reduces manual effort through:
+   - Automated delivery to multiple destination types
+   - Intelligent retry strategies
+   - Batch processing optimizations
+   - Configurable write modes for database destinations
 
-4. **Error Management**: Comprehensive monitoring and retry mechanisms ensure reliable data delivery.
+4. **Error Management**: 
+   - Comprehensive monitoring across all delivery methods
+   - Method-specific retry strategies
+   - Detailed error logging and tracking
+   - Automated failure notifications
+
+## Technical Architecture
+
+- **Frontend**: React + TypeScript with shadcn/ui components
+- **Backend Services**:
+  - Database: KsEdw (source system)
+  - Scheduler: Jenkins
+  - Message Queue: Kafka
+  - Storage: AWS S3
+  - Secure Vault: Credential storage
+  - API Gateway: Request routing and authentication
+  - Database Connection Pool: Managed database connections
+
+## Delivery Configuration Examples
+
+### SFTP Configuration
+```json
+{
+  "type": "sftp",
+  "sftp": {
+    "host": "sftp.example.com",
+    "port": 22,
+    "username": "transfer_user",
+    "path": "/uploads/data",
+    "knownHostKey": "ssh-rsa AAAAB3NzaC1..."
+  }
+}
+```
+
+### API Configuration
+```json
+{
+  "type": "api",
+  "api": {
+    "method": "POST",
+    "url": "https://api.example.com/data",
+    "headers": {
+      "Authorization": "Bearer ${env:API_TOKEN}",
+      "Content-Type": "application/json"
+    },
+    "validateSsl": true,
+    "timeout": 120,
+    "retryStrategy": {
+      "maxRetries": 3,
+      "backoffMultiplier": 2
+    }
+  }
+}
+```
+
+### Database Configuration
+```json
+{
+  "type": "database",
+  "database": {
+    "type": "postgresql",
+    "host": "db.example.com",
+    "port": 5432,
+    "name": "analytics_db",
+    "username": "etl_user",
+    "schema": "public",
+    "table": "processed_data",
+    "writeMode": "upsert",
+    "batchSize": 1000,
+    "connectionTimeout": 30
+  }
+}
+```
 
 ## User Workflows
 
@@ -65,23 +164,30 @@ AxTract addresses common challenges in healthcare data management:
 
 ### File Configuration
 1. Select approved layout
-2. Configure format and delivery
-3. Set up encryption
+2. Configure format and delivery method:
+   - Set up SFTP transfer
+   - Configure API endpoint
+   - Set up database destination
+3. Set up encryption (if required)
 4. Configure notifications
 5. Schedule generation
 
 ### Monitoring
 1. Track file processing
-2. Handle failures
-3. View historical performance
-4. Manage notifications
+2. Monitor delivery status
+3. Handle failures
+4. View historical performance
+5. Manage notifications
 
 ## Security Features
 
 - Role-based access control
 - Secure credential storage
 - PGP encryption support
-- SFTP with key authentication
+- Multiple authentication methods:
+  - SFTP key authentication
+  - API tokens
+  - Database credentials
 - Audit trail logging
 
 ## Performance
@@ -90,7 +196,12 @@ AxTract addresses common challenges in healthcare data management:
 - Batch processing capabilities
 - Configurable retry mechanisms
 - Optimized for off-hours processing
+- Database connection pooling
+- Configurable timeouts per delivery method
 
+## Getting Started
+
+[Installation instructions coming soon]
 
 ## Development
 
@@ -113,77 +224,4 @@ npm run dev
 npm run build
 ```
 
-# AxTract System Architecture
-
-## Overview
-AxTract consists of two main components: a React-based frontend UI and a serverless AWS-based backend engine. The system enables business users to configure and manage data extracts through a modern web interface while leveraging cloud infrastructure for reliable data processing and delivery.
-
-![axtract architecture diagram](./public/images/axtract-architecture.png)
-
-![axtract data flow diagram](./public/images/axtract-data-flows.png)
-
-## System Components
-
-### Frontend (UI Layer)
-- **Technology Stack**: React, TypeScript, shadcn/ui
-- **Key Features**:
-  - Layout Manager
-  - File Configuration
-  - Schedule Management
-  - Monitoring Dashboard
-- **State Management**: Context API with reducers
-- **API Integration**: REST API calls to backend services
-
-### Backend (Processing Engine)
-- **Core Services**:
-  - Layout Management Service
-  - File Processing Service
-  - Schedule Management Service
-  - Delivery Service
-  - Monitoring Service
-- **Infrastructure**: AWS Serverless Architecture
-- **Security**: IAM roles, API Gateway authentication, encryption at rest and in transit
-
-## API Integration Layer
-
-### REST API Endpoints
-
-1. Layout Management API:
-```
-POST   /api/layouts       # Create layout
-GET    /api/layouts       # List layouts
-GET    /api/layouts/{id}  # Get layout details
-PUT    /api/layouts/{id}  # Update layout
-DELETE /api/layouts/{id}  # Delete layout
-```
-
-2. File Configuration API:
-```
-POST   /api/files         # Create file configuration
-GET    /api/files         # List files
-GET    /api/files/{id}    # Get file details
-PUT    /api/files/{id}    # Update file
-DELETE /api/files/{id}    # Delete file
-```
-
-3. Schedule Management API:
-```
-POST   /api/schedules     # Create schedule
-GET    /api/schedules     # List schedules
-PUT    /api/schedules/{id}# Update schedule
-DELETE /api/schedules/{id}# Delete schedule
-```
-
-4. Monitoring API:
-```
-GET    /api/processes     # List processes
-GET    /api/processes/{id}# Get process details
-POST   /api/processes/retry/{id} # Retry failed process
-```
-
-### WebSocket API
-```
-connect    /ws            # Connect to real-time updates
-disconnect /ws            # Disconnect from updates
-send       /ws/status    # Send status updates
-
+For detailed API documentation and architecture diagrams, please refer to the [technical documentation](./docs/technical-docs.md).
