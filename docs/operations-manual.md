@@ -9,7 +9,7 @@ graph TB
     API --> WEB[Web Servers]
     API --> PROC[Processing Servers]
     WEB --> CACHE[Redis Cache]
-    WEB --> DB[(KsEdw Database)]
+    WEB --> DB[(EDW Database)]
     PROC --> QUEUE[Kafka Queue]
     PROC --> S3[AWS S3]
     QUEUE --> WORKERS[Worker Nodes]
