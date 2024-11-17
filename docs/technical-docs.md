@@ -376,8 +376,8 @@ graph TD
 - Security monitoring
 
 For additional details or specific implementation guides, please refer to the following documentation:
-- [Technical Documentation](./docs/technical-docs.md)
-- [API Documentation](./docs/api-docs.md)
-- [Development Guide](./docs/development-guide.md)
-- [Security Policies](./docs/security-policies.md)
-- [Operations Manual](./docs/operations-manual.md)
+- [Technical Documentation](./technical-docs.md)
+- [API Documentation](./api-docs.md)
+- [Development Guide](./development-guide.md)
+- [Security Policies](./security-policies.md)
+- [Operations Manual](./operations-manual.md)

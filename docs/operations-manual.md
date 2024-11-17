@@ -600,32 +600,14 @@ async function handleDataCorruption(
 }
 ```
 
-## Contact Information
-
-### On-Call Rotation
-- Primary: +1 (555) 123-4567
-- Secondary: +1 (555) 234-5678
-- Manager: +1 (555) 345-6789
-
-### Support Escalation
-1. Level 1: 24/7 Operations Team
-2. Level 2: System Administrators
-3. Level 3: Development Team
-4. Level 4: Senior Management
-
-### External Contacts
-- AWS Support: 1-800-555-0000
-- Database Support: 1-800-555-0001
-- Network Provider: 1-800-555-0002
-
 ## Appendix
 
 ### Reference Architecture
 ![Detailed system architecture diagram](../public/images/axtract-architecture.png)
 
 For additional details or specific implementation guides, please refer to the following documentation:
-- [Technical Documentation](./docs/technical-docs.md)
-- [API Documentation](./docs/api-docs.md)
-- [Development Guide](./docs/development-guide.md)
-- [Security Policies](./docs/security-policies.md)
-- [Operations Manual](./docs/operations-manual.md)
+- [Technical Documentation](./technical-docs.md)
+- [API Documentation](./api-docs.md)
+- [Development Guide](./development-guide.md)
+- [Security Policies](./security-policies.md)
+- [Operations Manual](./operations-manual.md)

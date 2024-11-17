@@ -507,7 +507,9 @@ interface VendorAssessment {
 7. Deployment
 8. Verification
 
-For questions about these policies or to report security concerns, contact:
-- Security Team: security@axtract.com
-- Emergency Hotline: +1 (555) 123-4567
-- Security Portal: https://security.axtract.com
+For additional details or specific implementation guides, please refer to the following documentation:
+- [Technical Documentation](./technical-docs.md)
+- [API Documentation](./api-docs.md)
+- [Development Guide](./development-guide.md)
+- [Security Policies](./security-policies.md)
+- [Operations Manual](./operations-manual.md)

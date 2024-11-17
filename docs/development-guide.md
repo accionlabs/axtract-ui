@@ -535,4 +535,9 @@ export function withPerformanceTracking(WrappedComponent: React.ComponentType) {
 - Wiki: [Internal Wiki Link]
 - Office Hours: Daily 2-3pm EST
 
-For additional information or specific questions, please contact the development team through the appropriate channels listed above.
+For additional details or specific implementation guides, please refer to the following documentation:
+- [Technical Documentation](./technical-docs.md)
+- [API Documentation](./api-docs.md)
+- [Development Guide](./development-guide.md)
+- [Security Policies](./security-policies.md)
+- [Operations Manual](./operations-manual.md)

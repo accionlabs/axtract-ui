@@ -519,8 +519,8 @@ file = client.files.create({
 The API is versioned through the URL path. The current version is `v1`. When breaking changes are introduced, a new version will be released, and the previous version will be supported for 12 months after deprecation notice.
 
 For additional details or specific implementation guides, please refer to the following documentation:
-- [Technical Documentation](./docs/technical-docs.md)
-- [API Documentation](./docs/api-docs.md)
-- [Development Guide](./docs/development-guide.md)
-- [Security Policies](./docs/security-policies.md)
-- [Operations Manual](./docs/operations-manual.md)
+- [Technical Documentation](./technical-docs.md)
+- [API Documentation](./api-docs.md)
+- [Development Guide](./development-guide.md)
+- [Security Policies](./security-policies.md)
+- [Operations Manual](./operations-manual.md)
