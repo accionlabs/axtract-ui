@@ -270,12 +270,52 @@ export const mockLayouts: Layout[] = [
     status: 'active',
     version: 1,
     lastModified: '2024-01-15T08:00:00Z',
-    fields: claimsLibraryFields.map((field, index) => ({
-      ...field,
-      id: `${LAYOUT_IDS.CLAIMS}-field-${index}`,
-      order: index,
-      customProperties: {}
-    })) as LayoutField[]
+    fields: claimsLibraryFields.map((field, index) => {
+      const baseField = {
+        ...field,
+        id: `${LAYOUT_IDS.CLAIMS}-field-${index}`,
+        order: index,
+        customProperties: {}
+      };
+
+      // Add transformations and sorting for specific fields
+      switch (field.id) {
+        case 'provider_name':
+          return {
+            ...baseField,
+            transformation: {
+              type: 'FORMAT',
+              operation: 'uppercase'
+            }
+          };
+        case 'amount_billed':
+          return {
+            ...baseField,
+            transformation: {
+              type: 'FORMAT',
+              operation: 'round'
+            },
+            sortOrder: {
+              direction: 'DESC',
+              priority: 1
+            }
+          };
+        case 'service_date':
+          return {
+            ...baseField,
+            transformation: {
+              type: 'FORMAT',
+              operation: 'shortDate'
+            },
+            sortOrder: {
+              direction: 'ASC',
+              priority: 2
+            }
+          };
+        default:
+          return baseField;
+      }
+    }) as LayoutField[]
   },
   {
     id: LAYOUT_IDS.ELIGIBILITY,
@@ -314,7 +354,7 @@ export const generateSampleDataForField = (field: LayoutField) => {
   switch (field.type) {
     case 'string':
       if (field.name.toLowerCase().includes('id')) {
-        return field.validation?.pattern 
+        return field.validation?.pattern
           ? field.validation.pattern.replace(/[\^\$]/g, '').replace(/[0-9]{6}/, '123456')
           : 'ABC123';
       }

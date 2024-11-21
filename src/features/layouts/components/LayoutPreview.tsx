@@ -6,241 +6,320 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { WandIcon, ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { generateSampleDataForField } from '../mockData';
 
 interface LayoutPreviewProps {
-  name: string;
-  description: string;
-  type: Layout['type'];
-  status?: Layout['status'];
-  fields: LayoutField[];
+    name: string;
+    description: string;
+    type: Layout['type'];
+    status?: Layout['status'];
+    fields: LayoutField[];
 }
 
 export function LayoutPreview({
-  name,
-  description,
-  type,
-  status,
-  fields
+    name,
+    description,
+    type,
+    status,
+    fields
 }: LayoutPreviewProps) {
-  return (
-    <ScrollArea className="h-full p-6">
-      <div className="space-y-6 max-w-4xl">
-        {/* Layout Details */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Layout Details</h3>
-          <Card className="p-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground">Name</h4>
-                <p className="mt-1">{name}</p>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground">Type</h4>
-                <div className="mt-1 flex items-center gap-2">
-                  <Badge variant="outline" className="capitalize">
-                    {type} Layout
-                  </Badge>
-                  {status && (
-                    <Badge 
-                      variant="secondary" 
-                      className={cn(
-                        status === 'active' && "bg-green-100 text-green-800",
-                        status === 'draft' && "bg-gray-100 text-gray-800",
-                        status === 'pending' && "bg-yellow-100 text-yellow-800"
-                      )}
-                    >
-                      {status}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              <div className="col-span-2">
-                <h4 className="text-sm font-medium text-muted-foreground">Description</h4>
-                <p className="mt-1 text-sm">{description}</p>
-              </div>
-            </div>
-          </Card>
-        </div>
 
-        {/* Fields Configuration */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">Fields Configuration</h3>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="capitalize">
-                {fields.length} Fields
-              </Badge>
-              <Badge variant="secondary" className="capitalize">
-                {fields.filter(f => f.required).length} Required
-              </Badge>
-            </div>
-          </div>
-          
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Field Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Required</TableHead>
-                  <TableHead>Validation</TableHead>
-                  <TableHead className="w-[100px]">Order</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {fields.map((field) => (
-                  <TableRow key={field.id}>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="font-medium">{field.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {field.description}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {field.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {field.category || 'General'}
-                    </TableCell>
-                    <TableCell>
-                      {field.required ? (
-                        <Badge variant="default" className="bg-yellow-100 text-yellow-800">
-                          Required
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline">Optional</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {field.validation && Object.keys(field.validation).length > 0 ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Badge variant="secondary">
+    const getTransformationLabel = (field: LayoutField) => {
+        if (!field.transformation) return null;
+
+        switch (field.transformation.operation) {
+            case 'uppercase': return 'Convert to uppercase';
+            case 'lowercase': return 'Convert to lowercase';
+            case 'trim': return 'Trim spaces';
+            case 'round': return 'Round number';
+            case 'floor': return 'Floor number';
+            case 'ceil': return 'Ceiling number';
+            case 'shortDate': return 'Short date format';
+            case 'longDate': return 'Long date format';
+            case 'isoDate': return 'ISO date format';
+            default: return null;
+        }
+    };
+
+    // Inside LayoutPreview.tsx, replace the existing renderFieldConfiguration function
+    const renderFieldConfiguration = (field: LayoutField) => (
+        <div className="flex flex-wrap gap-2">
+            {field.validation && Object.keys(field.validation).length > 0 ? (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger>
+                            <Badge variant="secondary">
                                 {Object.keys(field.validation).length} Rules
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="text-xs space-y-1">
+                            </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <div className="text-xs space-y-1">
                                 {Object.entries(field.validation).map(([key, value]) => (
-                                  <div key={key}>
-                                    <span className="font-medium capitalize">{key}:</span>{" "}
-                                    {Array.isArray(value) ? value.join(', ') : value.toString()}
-                                  </div>
+                                    <div key={key}>
+                                        <span className="font-medium capitalize">{key}:</span>{" "}
+                                        {Array.isArray(value) ? value.join(', ') : value.toString()}
+                                    </div>
                                 ))}
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">No validation</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {field.order + 1}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        </div>
+                            </div>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            ) : (
+                <span className="text-sm text-muted-foreground">No validation</span>
+            )}
 
-        {/* Sample Data Preview */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Sample Data Preview</h3>
-          <Card className="p-4">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">JSON Format</Badge>
-                <span className="text-sm text-muted-foreground">
-                  Sample row with dummy data
-                </span>
-              </div>
-              <div className="relative">
-                <pre className="p-4 rounded-lg bg-muted font-mono text-xs overflow-x-auto">
-                  {JSON.stringify(
-                    fields.reduce((acc, field) => {
-                      acc[field.name] = generateSampleDataForField(field);
-                      return acc;
-                    }, {} as Record<string, any>),
-                    null,
-                    2
-                  )}
-                </pre>
-              </div>
-            </div>
-          </Card>
-        </div>
+            {field.transformation && (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Badge variant="outline" className="gap-1">
+                                <WandIcon className="h-3 w-3" />
+                                Transform
+                            </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <div className="text-xs">
+                                {getTransformationLabel(field)}
+                            </div>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            )}
 
-        {/* Validation Summary */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Validation Summary</h3>
-          <Card className="p-4">
-            <div className="space-y-4">
-              <div className="grid grid-cols-4 gap-4">
-                <div>
-                  <div className="text-2xl font-bold text-green-600">
-                    {fields.filter(f => !!(f.validation && Object.keys(f.validation).length)).length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Fields with Validation
-                  </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-yellow-600">
-                    {fields.filter(f => f.required).length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Required Fields
-                  </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {fields.reduce((acc, field) => 
-                      acc + (field.validation ? Object.keys(field.validation).length : 0), 
-                    0)}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Total Validation Rules
-                  </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">
-                    {Object.keys(fields.reduce((acc, field) => {
-                      if (field.category) acc[field.category] = true;
-                      return acc;
-                    }, {} as Record<string, boolean>)).length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Field Categories
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
+            {field.sortOrder?.direction && (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Badge
+                                variant="secondary"
+                                className={cn(
+                                    "gap-1",
+                                    field.sortOrder.direction === 'ASC' ? "text-green-600" : "text-amber-600"
+                                )}
+                            >
+                                {field.sortOrder.direction === 'ASC' ?
+                                    <ArrowUpIcon className="h-3 w-3" /> :
+                                    <ArrowDownIcon className="h-3 w-3" />
+                                }
+                                Sort
+                            </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <div className="text-xs">
+                                Sort {field.sortOrder.direction.toLowerCase()}
+                                {field.sortOrder.priority &&
+                                    <span className="ml-1">(Priority: {field.sortOrder.priority})</span>
+                                }
+                            </div>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            )}
         </div>
-      </div>
-    </ScrollArea>
-  );
+    );
+
+    return (
+        <ScrollArea className="h-full p-6">
+            <div className="space-y-6 max-w-4xl">
+                {/* Layout Details */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Layout Details</h3>
+                    <Card className="p-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <h4 className="text-sm font-medium text-muted-foreground">Name</h4>
+                                <p className="mt-1">{name}</p>
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-medium text-muted-foreground">Type</h4>
+                                <div className="mt-1 flex items-center gap-2">
+                                    <Badge variant="outline" className="capitalize">
+                                        {type} Layout
+                                    </Badge>
+                                    {status && (
+                                        <Badge
+                                            variant="secondary"
+                                            className={cn(
+                                                status === 'active' && "bg-green-100 text-green-800",
+                                                status === 'draft' && "bg-gray-100 text-gray-800",
+                                                status === 'pending' && "bg-yellow-100 text-yellow-800"
+                                            )}
+                                        >
+                                            {status}
+                                        </Badge>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="col-span-2">
+                                <h4 className="text-sm font-medium text-muted-foreground">Description</h4>
+                                <p className="mt-1 text-sm">{description}</p>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+
+                {/* Fields Configuration */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-medium">Fields Configuration</h3>
+                        <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="capitalize">
+                                {fields.length} Fields
+                            </Badge>
+                            <Badge variant="secondary" className="capitalize">
+                                {fields.filter(f => f.required).length} Required
+                            </Badge>
+                            <Badge variant="secondary" className="capitalize">
+                                {fields.filter(f => f.sortOrder).length} Sorted
+                            </Badge>
+                        </div>
+                    </div>
+
+                    <Card>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Field Name</TableHead>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead>Category</TableHead>
+                                    <TableHead>Required</TableHead>
+                                    <TableHead>Configuration</TableHead>
+                                    <TableHead className="w-[100px]">Order</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {fields.map((field) => (
+                                    <TableRow key={field.id}>
+                                        <TableCell>
+                                            <div className="space-y-1">
+                                                <div className="font-medium">{field.name}</div>
+                                                <div className="text-sm text-muted-foreground">
+                                                    {field.description}
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline">
+                                                {field.type}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            {field.category || 'General'}
+                                        </TableCell>
+                                        <TableCell>
+                                            {field.required ? (
+                                                <Badge variant="default" className="bg-yellow-100 text-yellow-800">
+                                                    Required
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline">Optional</Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-wrap gap-2">
+                                                {renderFieldConfiguration(field)}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            {field.order + 1}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </Card>
+                </div>
+
+                {/* Sample Data Preview */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Sample Data Preview</h3>
+                    <Card className="p-4">
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                <Badge variant="outline">JSON Format</Badge>
+                                <span className="text-sm text-muted-foreground">
+                                    Sample row with dummy data
+                                </span>
+                            </div>
+                            <div className="relative">
+                                <pre className="p-4 rounded-lg bg-muted font-mono text-xs overflow-x-auto">
+                                    {JSON.stringify(
+                                        fields.reduce((acc, field) => {
+                                            acc[field.name] = generateSampleDataForField(field);
+                                            return acc;
+                                        }, {} as Record<string, any>),
+                                        null,
+                                        2
+                                    )}
+                                </pre>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+
+                {/* Validation Summary */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Validation Summary</h3>
+                    <Card className="p-4">
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-4 gap-4">
+                                <div>
+                                    <div className="text-2xl font-bold text-green-600">
+                                        {fields.filter(f => !!(f.validation && Object.keys(f.validation).length)).length}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                        Fields with Validation
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-2xl font-bold text-yellow-600">
+                                        {fields.filter(f => f.required).length}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                        Required Fields
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-2xl font-bold text-blue-600">
+                                        {fields.reduce((acc, field) =>
+                                            acc + (field.validation ? Object.keys(field.validation).length : 0),
+                                            0)}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                        Total Validation Rules
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-2xl font-bold">
+                                        {Object.keys(fields.reduce((acc, field) => {
+                                            if (field.category) acc[field.category] = true;
+                                            return acc;
+                                        }, {} as Record<string, boolean>)).length}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                        Field Categories
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+            </div>
+        </ScrollArea>
+    );
 }

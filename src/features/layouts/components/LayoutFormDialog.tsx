@@ -69,7 +69,16 @@ const layoutFormFieldSchema = z.object({
   category: z.string().optional(),
   order: z.number(),
   validation: z.record(z.any()).optional(),
-  customProperties: z.record(z.any()).optional()
+  customProperties: z.record(z.any()).optional(),
+  transformation: z.object({
+    type: z.enum(['FORMAT', 'CONVERT', 'COMPUTE']),
+    operation: z.string(),
+    parameters: z.record(z.any()).optional()
+  }).optional(),
+  sortOrder: z.object({
+    direction: z.enum(['ASC', 'DESC']),
+    priority: z.number().min(1).max(100)
+  }).optional()
 });
 
 // Main form schema with less strict validation

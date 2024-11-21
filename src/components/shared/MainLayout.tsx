@@ -2,9 +2,14 @@ import { Outlet } from 'react-router-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ROUTES } from '@/routes/constants';
-import { LayoutGrid, FileText, Settings, Calendar } from 'lucide-react';
+import { 
+  LayoutGrid, 
+  FileText, 
+  Settings, 
+  Calendar, 
+  Database 
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
-//import FloatingTourButton from '@/features/tours/FloatingTourButton';
 
 const MainLayout = () => {
   const navigate = useNavigate();
@@ -17,6 +22,11 @@ const MainLayout = () => {
       label: 'Dashboard',
       icon: LayoutGrid,
       route: ROUTES.DASHBOARD,
+    },
+    {
+      label: 'Sources',
+      icon: Database,
+      route: ROUTES.SOURCE_MANAGER,
     },
     {
       label: 'Layouts',
@@ -76,8 +86,6 @@ const MainLayout = () => {
               </Button>
             ))}
           </nav>
-
-
         </div>
       </header>
 

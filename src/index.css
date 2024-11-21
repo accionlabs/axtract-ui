@@ -65,3 +65,19 @@
     @apply bg-background text-foreground;
   }
 }
+
+.query-content-height {
+  height: calc(100vh - 400px);
+}
+
+@media (max-height: 900px) {
+  .query-content-height {
+    height: calc(100vh - 300px);
+  }
+}
+
+@media (max-height: 700px) {
+  .query-content-height {
+    height: calc(100vh - 250px);
+  }
+}

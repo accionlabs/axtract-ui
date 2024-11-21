@@ -3,6 +3,7 @@
 export type FieldType = 'string' | 'number' | 'date' | 'boolean' | 'decimal';
 export type LayoutType = 'claims' | 'eligibility' | 'wellness';
 export type LayoutStatus = 'draft' | 'pending' | 'active';
+export type TransformationType = 'FORMAT' | 'CONVERT' | 'COMPUTE';
 
 export interface FieldValidation {
   required?: boolean;
@@ -35,6 +36,17 @@ interface BaseField {
   validation?: FieldValidation;
 }
 
+export interface FieldTransformation {
+  type: TransformationType;
+  operation: string;
+  parameters?: Record<string, any>;
+}
+
+export interface SortConfiguration {
+  direction: 'ASC' | 'DESC';
+  priority: number;
+}
+
 // Form field type used in form submission
 export interface LayoutFormField extends BaseField {
   id?: string; // Optional as it might not exist for new fields
@@ -46,6 +58,8 @@ export interface LayoutField extends BaseField {
   id: string;
   order: number;
   customProperties: Record<string, any>;
+  transformation?: FieldTransformation;
+  sortOrder?: SortConfiguration;
 }
 
 export interface Layout {

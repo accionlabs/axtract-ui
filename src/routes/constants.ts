@@ -3,6 +3,7 @@ export const ROUTES = {
     LAYOUT_MANAGER: '/layouts',
     FILE_MANAGER: '/files',
     MONITORING: '/monitoring',
+    SOURCE_MANAGER: '/sources',
   } as const;
   
   // Helper function to get full path with base URL

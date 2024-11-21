@@ -1,7 +1,10 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, X, ChevronDown, AlertCircle, CheckCircle } from 'lucide-react';
-import { LayoutField } from '@/features/layouts/types';
+import {
+  LayoutField,
+  FieldType
+} from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -33,6 +36,40 @@ interface SortableFieldItemProps {
   onRemove: () => void;
   onUpdate: (updates: Partial<LayoutField>) => void;
 }
+
+// Add transformation options based on field type
+const getTransformationOptions = (fieldType: FieldType): { value: string; label: string; }[] => {
+  const commonOptions = [
+    { value: 'none', label: 'No transformation' }
+  ];
+
+  switch (fieldType) {
+    case 'string':
+      return [
+        ...commonOptions,
+        { value: 'uppercase', label: 'Uppercase' },
+        { value: 'lowercase', label: 'Lowercase' },
+        { value: 'trim', label: 'Trim spaces' },
+      ];
+    case 'number':
+    case 'decimal':
+      return [
+        ...commonOptions,
+        { value: 'round', label: 'Round' },
+        { value: 'floor', label: 'Floor' },
+        { value: 'ceil', label: 'Ceiling' },
+      ];
+    case 'date':
+      return [
+        ...commonOptions,
+        { value: 'shortDate', label: 'Short Date' },
+        { value: 'longDate', label: 'Long Date' },
+        { value: 'isoDate', label: 'ISO Date' },
+      ];
+    default:
+      return commonOptions;
+  }
+};
 
 interface ValidationMessage {
   message: string;
@@ -168,7 +205,7 @@ export default function SortableFieldItem({
                       <TooltipContent>
                         <div className="space-y-1">
                           {validationMessages.map((msg, idx) => (
-                            <div 
+                            <div
                               key={idx}
                               className={cn(
                                 "text-xs",
@@ -199,6 +236,95 @@ export default function SortableFieldItem({
                   </Button>
                 </div>
               </div>
+            </div>
+
+            {/* Add Transformation Section */}
+            <div className="space-y-2">
+              <Label>Transform</Label>
+              <Select
+                value={field.transformation?.operation || 'none'}
+                onValueChange={(value) => {
+                  if (value === 'none') {
+                    onUpdate({ transformation: undefined });
+                  } else {
+                    onUpdate({
+                      transformation: {
+                        type: 'FORMAT',
+                        operation: value
+                      }
+                    });
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select transformation" />
+                </SelectTrigger>
+                <SelectContent>
+                  {getTransformationOptions(field.type).map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Add Sort Section */}
+            <div className="space-y-2">
+              <Label>Sort</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={field.sortOrder?.direction || 'none'}
+                  onValueChange={(value: 'none' | 'ASC' | 'DESC') => {
+                    if (value === 'none') {
+                      onUpdate({ sortOrder: undefined });
+                    } else {
+                      onUpdate({
+                        sortOrder: {
+                          direction: value,  // This is now definitely ASC or DESC
+                          priority: field.sortOrder?.priority || 1
+                        }
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Sort direction" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No sort</SelectItem>
+                    <SelectItem value="ASC">Ascending</SelectItem>
+                    <SelectItem value="DESC">Descending</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {field.sortOrder && (
+                  <Input
+                    type="number"
+                    value={field.sortOrder.priority}
+                    onChange={(e) => {
+                      const priority = parseInt(e.target.value);
+                      if (!isNaN(priority)) {
+                        onUpdate({
+                          sortOrder: {
+                            direction: field.sortOrder?.direction || "ASC",
+                            priority
+                          }
+                        });
+                      }
+                    }}
+                    className="w-20"
+                    min={1}
+                    max={100}
+                    placeholder="Priority"
+                  />
+                )}
+              </div>
+              {field.sortOrder && (
+                <p className="text-xs text-muted-foreground">
+                  Sort priority determines the order of multiple sorted fields
+                </p>
+              )}
             </div>
           </div>
         </div>
